@@ -5,7 +5,7 @@ using Phobos.Objectives;
 
 namespace Phobos.ECS.Systems;
 
-public class SquadTaskSystem(ObjectiveSystem objectiveSystem, ObjectiveQueue objectiveQueue)
+public class SquadTaskSystem(ActorTaskSystem actorTaskSystem, ObjectiveQueue objectiveQueue)
 {
     public void Update(List<Squad> squads)
     {
@@ -22,7 +22,7 @@ public class SquadTaskSystem(ObjectiveSystem objectiveSystem, ObjectiveQueue obj
                     if (member.Task.HasObjective)
                         continue;
                     
-                    objectiveSystem.AssignObjective(member, squad.Task.Objective);
+                    actorTaskSystem.AssignObjective(member, squad.Task.Objective);
                 }
                 
                 continue;

@@ -10,17 +10,17 @@ namespace Phobos.ECS;
 public class SystemOrchestrator : IActorSystem
 {
     public readonly MovementSystem MovementSystem;
-    public readonly ObjectiveSystem ObjectiveSystem;
+    public readonly ActorTaskSystem ActorTaskSystem;
     public readonly SquadOrchestrator SquadOrchestrator;
     private readonly List<IActorSystem> _systems;
 
     public SystemOrchestrator(NavJobExecutor navJobExecutor, ObjectiveQueue objectiveQueue)
     {
         MovementSystem = new MovementSystem(navJobExecutor);
-        ObjectiveSystem = new ObjectiveSystem(MovementSystem);
-        SquadOrchestrator = new SquadOrchestrator(ObjectiveSystem, objectiveQueue);
+        ActorTaskSystem = new ActorTaskSystem(MovementSystem);
+        SquadOrchestrator = new SquadOrchestrator(ActorTaskSystem, objectiveQueue);
 
-        _systems = [MovementSystem, ObjectiveSystem, SquadOrchestrator];
+        _systems = [MovementSystem, ActorTaskSystem, SquadOrchestrator];
     }
 
     public void AddActor(Actor actor)
@@ -42,7 +42,7 @@ public class SystemOrchestrator : IActorSystem
     public void Update()
     {
         SquadOrchestrator.Update();
-        ObjectiveSystem.Update();
+        ActorTaskSystem.Update();
         MovementSystem.Update();
     }
 }

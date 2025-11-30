@@ -4,7 +4,7 @@ using Phobos.Objectives;
 
 namespace Phobos.ECS.Systems;
 
-public class ObjectiveSystem(MovementSystem movementSystem) : BaseActorSystem
+public class ActorTaskSystem(MovementSystem movementSystem) : BaseActorSystem
 {
     public void AssignObjective(Actor actor, Objective objective)
     {

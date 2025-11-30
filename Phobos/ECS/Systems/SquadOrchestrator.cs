@@ -7,7 +7,7 @@ using Phobos.Objectives;
 
 namespace Phobos.ECS.Systems;
 
-public class SquadOrchestrator(ObjectiveSystem objectiveSystem, ObjectiveQueue objectiveQueue) : IActorSystem
+public class SquadOrchestrator(ActorTaskSystem actorTaskSystem, ObjectiveQueue objectiveQueue) : IActorSystem
 {
     private readonly FramePacing _pacing = new(10);
     
@@ -15,7 +15,7 @@ public class SquadOrchestrator(ObjectiveSystem objectiveSystem, ObjectiveQueue o
     private readonly List<Squad> _emptySquads = [];
     private readonly Dictionary<int, Squad> _squadIdMap = new();
     
-    private readonly SquadTaskSystem _squadsTaskSystem = new(objectiveSystem, objectiveQueue);
+    private readonly SquadTaskSystem _squadsTaskSystem = new(actorTaskSystem, objectiveQueue);
 
     public Squad GetSquad(int squadId)
     {
