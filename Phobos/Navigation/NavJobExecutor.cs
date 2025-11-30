@@ -4,10 +4,10 @@ using UnityEngine.AI;
 
 namespace Phobos.Navigation;
 
-public class NavJob(Vector3 destination, Vector3 origin)
+public class NavJob(Vector3 origin, Vector3 destination)
 {
-    public readonly Vector3 Destination = destination;
     public readonly Vector3 Origin = origin;
+    public readonly Vector3 Destination = destination;
     public NavMeshPathStatus Status = NavMeshPathStatus.PathInvalid;
     public Vector3[] Corners;
     public bool IsReady => Corners != null;

@@ -35,18 +35,18 @@ public class PhobosLayer : CustomLayer
     
     public PhobosLayer(BotOwner botOwner, int priority) : base(botOwner, priority)
     {
-        _systemOrchestrator = Singleton<SystemOrchestrator>.Instance;
-        
-        _actor = new Actor(botOwner);
-        _systemOrchestrator.AddActor(_actor);
-        _squad = _systemOrchestrator.SquadOrchestrator.GetSquad(_actor.SquadId);
-        
         // Have to turn this off otherwise bots will be deactivated far away.
         botOwner.StandBy.CanDoStandBy = false;
         botOwner.StandBy.Activate();
         
         // TODO: Expand this into the suspended detection system
         botOwner.Brain.BaseBrain.OnLayerChangedTo += layer => Plugin.Log.LogInfo("Layer changed to " + layer.Name());
+        
+        _systemOrchestrator = Singleton<SystemOrchestrator>.Instance;
+        
+        _actor = new Actor(botOwner);
+        _systemOrchestrator.AddActor(_actor);
+        _squad = _systemOrchestrator.SquadOrchestrator.GetSquad(_actor.SquadId);
     }
     
     public override string GetName()
@@ -107,8 +107,5 @@ public class PhobosLayer : CustomLayer
         sb.AppendLine("*** Squad ***");
         sb.AppendLine($"{_squad}, size: {_squad.Count}, {_squad.Task}");
         sb.AppendLine($"Standby: {BotOwner.StandBy.StandByType} candostandby: {BotOwner.StandBy.CanDoStandBy}");
-        sb.AppendLine(
-            $"CurPath: {BotOwner.Mover.ActualPathController.CurPath} progress {BotOwner.Mover.ActualPathController.CurPath?.CurIndex}/{BotOwner.Mover.ActualPathController.CurPath?.Length}"
-        );
     }
 }

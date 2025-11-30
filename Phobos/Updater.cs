@@ -11,7 +11,7 @@ public class Updater : MonoBehaviour
     
     public void Update()
     {
-        // SystemOrchestrator.Update();
+        SystemOrchestrator.Update();
         NavJobExecutor.Update();
     }
 }

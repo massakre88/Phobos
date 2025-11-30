@@ -1,24 +1,42 @@
-﻿using Phobos.Navigation;
+﻿using EFT;
+using Phobos.Navigation;
 using UnityEngine;
-using UnityEngine.AI;
 
 namespace Phobos.ECS.Components;
 
+public enum RoutingStatus
+{
+    Inactive,
+    Active,
+    Completed,
+    Failed
+}
+
 public class Routing
 {
-    public readonly NavPath Path = new();
+    public NavPath Path = new();
+    
+    public RoutingStatus Status = RoutingStatus.Inactive;
     public Vector3 Destination;
-    public NavMeshPathStatus Status = NavMeshPathStatus.PathInvalid;
-
+    public int CurrentCorner;
+    public float SqrDistance;
+    
     public void Set(NavJob job)
     {
-        Path.Set(job);
+        Path = new NavPath(job);
+        Status = RoutingStatus.Active;
         Destination = job.Destination;
-        Status = job.Status;
+        CurrentCorner = 1;
+    }
+
+    public void Update(BotOwner bot)
+    {
+        SqrDistance = (Destination - bot.Position).sqrMagnitude;
+        CurrentCorner = bot.Mover.ActualPathController.CurPath.CurIndex;
     }
 
     public override string ToString()
     {
-        return $"Routing(corners: {Path.Corners.Length}, status: {Status})";
+        return $"Routing(Corner: {CurrentCorner}/{Path.Corners.Length}, SqrDistance: {SqrDistance}, Status: {Status})";
     }
 }

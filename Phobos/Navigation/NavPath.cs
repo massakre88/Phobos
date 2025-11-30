@@ -2,16 +2,15 @@
 
 namespace Phobos.Navigation;
 
-public class NavPath(Vector3[] corners)
+public readonly struct NavPath(Vector3[] corners)
 {
-    public Vector3[] Corners = corners;
+    public readonly Vector3[] Corners = corners;
 
     public NavPath() : this([])
     {
     }
-
-    public void Set(NavJob job)
+    
+    public NavPath(NavJob job) : this(job.Corners)
     {
-        Corners = job.Corners;
     }
 }

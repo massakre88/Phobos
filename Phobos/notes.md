@@ -1,4 +1,7 @@
 ﻿# TODO:
+* Make the bot look 2-3 points ahead if not running
+* Prevent sprinting when <10m from the destination
+* Add basic objective tracking 
 * Add a mechanism to the objective system to resubmit the objective if the actor is reactivated
 * Add movement and stance status tracking to a component, so we keep track of stuff like the path angle jitter, etc.
 * Add pathing status tracking to the movement system, so we keep track of where we are on the path
