@@ -14,7 +14,7 @@ public class Actor(BotOwner bot) : IEquatable<Actor>
     
     
     public readonly ActorTask Task = new();
-    public readonly Routing Routing = new(bot);
+    public readonly Movement Movement = new(bot);
     
     public bool IsActive => !Suspended && !Paused;
     

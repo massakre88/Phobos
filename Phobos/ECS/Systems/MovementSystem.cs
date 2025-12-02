@@ -11,7 +11,7 @@ namespace Phobos.ECS.Systems;
 
 public class MovementSystem(NavJobExecutor navJobExecutor) : BaseActorSystem
 {
-    private const float SqrDistanceEpsilon = 5f * 5f;
+    private const float DistanceEpsSqr = 5f * 5f;
 
     private readonly Queue<ValueTuple<Actor, NavJob>> _pathJobs = new(20);
 
@@ -60,8 +60,8 @@ public class MovementSystem(NavJobExecutor navJobExecutor) : BaseActorSystem
 
     private static void StartMovement(Actor actor, NavJob job)
     {
-        actor.Routing.Set(job);
-        actor.Bot.Mover.GoToByWay(job.Path, 1);
+        actor.Movement.Set(job);
+        actor.Bot.Mover.GoToByWay(job.Path, 2);
         actor.Bot.Mover.ActualPathFinder.SlowAtTheEnd = true;
 
         // Debug
@@ -71,16 +71,16 @@ public class MovementSystem(NavJobExecutor navJobExecutor) : BaseActorSystem
     private static void UpdateMovement(Actor actor)
     {
         var bot = actor.Bot;
-        var routing = actor.Routing;
+        var movement = actor.Movement;
 
         // Skip bots with no current pathing
-        if (routing.ActualPath == null || routing.Target == null)
+        if (movement.ActualPath == null || movement.Target == null)
             return;
 
-        routing.SqrDistance = (routing.Target.Position - bot.Position).sqrMagnitude;
+        movement.Target.DistanceSqr = (movement.Target.Position - bot.Position).sqrMagnitude;
 
-        if (routing.SqrDistance < SqrDistanceEpsilon)
-            routing.Status = RoutingStatus.Completed;
+        if (movement.Target.DistanceSqr < DistanceEpsSqr)
+            movement.Status = MovementStatus.Completed;
 
         // We'll enforce these whenever the bot is under way
         bot.SetPose(1f);
@@ -92,14 +92,14 @@ public class MovementSystem(NavJobExecutor navJobExecutor) : BaseActorSystem
         var shouldSprint = ShouldSprint(actor);
         bot.Mover.Sprint(shouldSprint);
 
-        var lookPoint = CalculateForwardPointOnPath(routing.ActualPath.Vector3_0, bot.Position, routing.ActualPath.CurIndex) + 1.5f * Vector3.up;
+        var lookPoint = CalculateForwardPointOnPath(movement.ActualPath.Vector3_0, bot.Position, movement.ActualPath.CurIndex) + 1.5f * Vector3.up;
         bot.Steering.LookToPoint(lookPoint, 360f);
     }
 
     private static bool ShouldSprint(Actor actor)
     {
         var bot = actor.Bot;
-        var isFarFromDestination = actor.Routing.SqrDistance > SqrDistanceEpsilon;
+        var isFarFromDestination = actor.Movement.Target.DistanceSqr > DistanceEpsSqr;
         var isOutside = bot.AIData.EnvironmentId == 0;
         var isAbleToSprint = !bot.Mover.NoSprint && bot.GetPlayer.MovementContext.CanSprint;
         var isPathSmooth = CalculatePathAngleJitter(

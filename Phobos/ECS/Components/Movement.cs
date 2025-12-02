@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace Phobos.ECS.Components;
 
-public enum RoutingStatus
+public enum MovementStatus
 {
     Suspended,
     Active,
@@ -16,15 +16,15 @@ public enum RoutingStatus
 public class Target
 {
     public Vector3 Position;
+    public float DistanceSqr;
     public Vector3[] Path;
 }
 
-public class Routing(BotOwner bot)
+public class Movement(BotOwner bot)
 {
-    public RoutingStatus Status = RoutingStatus.Suspended;
+    public MovementStatus Status = MovementStatus.Suspended;
     public Target Target;
     public BotCurrentPathAbstractClass ActualPath => bot.Mover.ActualPathController.CurPath;
-    public float SqrDistance;
 
     public void Set(NavJob job)
     {
@@ -35,6 +35,7 @@ public class Routing(BotOwner bot)
 
     public override string ToString()
     {
-        return $"Routing(HasTarget: {Target!=null} SqrDistance: {SqrDistance}, Status: {Status} Path: {ActualPath?.CurIndex}/{ActualPath?.Length})";
+        return
+            $"Movement(HasTarget: {Target != null} DistanceSqr: {Target?.DistanceSqr}, Status: {Status} Path: {ActualPath?.CurIndex}/{ActualPath?.Length})";
     }
 }

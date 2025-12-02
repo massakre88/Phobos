@@ -100,7 +100,7 @@ public class PhobosLayer : CustomLayer
     {
         sb.AppendLine("*** Actor ***");
         sb.AppendLine($"{_actor}, active: {_actor.IsActive}, paused: {_actor.Paused}, suspended: {_actor.Suspended}");
-        sb.AppendLine($"{_actor.Task}, {_actor.Routing}");
+        sb.AppendLine($"{_actor.Task}, {_actor.Movement}");
         sb.AppendLine("*** Squad ***");
         sb.AppendLine($"{_squad}, size: {_squad.Count}, {_squad.Task}");
         sb.AppendLine($"Standby: {BotOwner.StandBy.StandByType} candostandby: {BotOwner.StandBy.CanDoStandBy}");
