@@ -93,7 +93,7 @@ public class MovementSystem(NavJobExecutor navJobExecutor) : BaseActorSystem
         bot.Mover.Sprint(shouldSprint);
 
         var lookPoint = CalculateForwardPointOnPath(routing.ActualPath.Vector3_0, bot.Position, routing.ActualPath.CurIndex) + 1.5f * Vector3.up;
-        bot.Steering.LookToPoint(lookPoint, 520);
+        bot.Steering.LookToPoint(lookPoint, 360f);
     }
 
     private static bool ShouldSprint(Actor actor)
