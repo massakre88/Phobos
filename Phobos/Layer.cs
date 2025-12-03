@@ -5,6 +5,7 @@ using EFT;
 using Phobos.Diag;
 using Phobos.ECS;
 using Phobos.ECS.Entities;
+using UnityEngine;
 
 namespace Phobos;
 
@@ -72,26 +73,24 @@ public class PhobosLayer : CustomLayer
 
     public override bool IsActive()
     {
+        var isHealing = false;
+        
+        if (BotOwner.Medecine != null)
+        {
+            isHealing = BotOwner.Medecine.Using;
+        
+            if (BotOwner.Medecine.FirstAid != null)
+                isHealing |= BotOwner.Medecine.FirstAid.Have2Do;
+            if (BotOwner.Medecine.SurgicalKit.HaveWork)
+                isHealing |= BotOwner.Medecine.SurgicalKit.HaveWork;
+        }
+        
+        var isInCombat = BotOwner.Memory.IsUnderFire || BotOwner.Memory.HaveEnemy || Time.time - BotOwner.Memory.LastEnemyTimeSeen < 30f;
+        
+        if (isHealing || isInCombat)
+            return false;
+
         return _actor.IsPhobosActive;
-
-        // var isHealing = false;
-        //
-        // if (BotOwner.Medecine != null)
-        // {
-        //     isHealing = BotOwner.Medecine.Using;
-        //
-        //     if (BotOwner.Medecine.FirstAid != null)
-        //         isHealing |= BotOwner.Medecine.FirstAid.Have2Do;
-        //     if (BotOwner.Medecine.SurgicalKit.HaveWork)
-        //         isHealing |= BotOwner.Medecine.SurgicalKit.HaveWork;
-        // }
-        //
-        // var isInCombat = BotOwner.Memory.IsUnderFire || BotOwner.Memory.HaveEnemy || Time.time - BotOwner.Memory.LastEnemyTimeSeen < 30f;
-        //
-        // if (isHealing || isInCombat)
-        //     return false;
-
-        // return Update(objective);
     }
     
     public override bool IsCurrentActionEnding()
