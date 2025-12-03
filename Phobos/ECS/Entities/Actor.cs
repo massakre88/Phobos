@@ -42,6 +42,6 @@ public class Actor(BotOwner bot) : IEquatable<Actor>
 
     public override string ToString()
     {
-        return $"Actor(id: {_id}, name: {Bot.Profile.Nickname})";
+        return $"Actor(Id: {_id}, Name: {Bot.Profile.Nickname}, LayerActive: {IsLayerActive}, PhobosActive: {IsPhobosActive})";
     }
 }
