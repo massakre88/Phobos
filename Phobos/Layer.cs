@@ -85,8 +85,12 @@ public class PhobosLayer : CustomLayer
                 isHealing |= BotOwner.Medecine.SurgicalKit.HaveWork;
         }
 
-        // var isInCombat = BotOwner.Memory.IsUnderFire || (BotOwner.Memory.HaveEnemy && Time.time - BotOwner.Memory.LastEnemyTimeSeen < 10f);
-        return !isHealing && _actor.IsPhobosActive;
+        var isInCombat = BotOwner.Memory.IsUnderFire || (BotOwner.Memory.HaveEnemy && Time.time - BotOwner.Memory.LastEnemyTimeSeen < 20f);
+        
+        if (isHealing || isInCombat)
+            return false;
+        
+        return _actor.IsPhobosActive;
     }
     
     public override bool IsCurrentActionEnding()

@@ -16,7 +16,7 @@ public class MovementSystem(NavJobExecutor navJobExecutor) : BaseActorSystem
     // If we are further than this from a corner, allow the bot to sprint even if there are sharp turns later.
     private const float SprintCancelPathCornerDistanceSqr = 10f * 10f;
     private const float TargetReachedDistanceSqr = 5f * 5f;
-    private const float TargetVicinityDistanceSqr = 25f * 25f;
+    private const float TargetVicinityDistanceSqr = 150f * 150f;
     private const float LookAheadDistanceSqr = 1.5f;
 
     private readonly Queue<ValueTuple<Actor, NavJob>> _moveJobs = new(20);
