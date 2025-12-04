@@ -109,18 +109,9 @@ public class MovementSystem(NavJobExecutor navJobExecutor) : BaseActorSystem
         var bot = actor.Bot;
         var movement = actor.Movement;
 
-        if (movement.Status == MovementStatus.Failed)
+        if (movement.Status is MovementStatus.Failed or MovementStatus.Suspended)
             return;
-
-        if (movement.Status == MovementStatus.Suspended)
-        {
-            // If movement got suspended before, but we have a target, try to resume it
-            if (movement.Target != null)
-                MoveRetry(actor);
-
-            return;
-        }
-
+        
         // Failsafe
         if (movement.Target == null)
         {
@@ -167,8 +158,8 @@ public class MovementSystem(NavJobExecutor navJobExecutor) : BaseActorSystem
         // Bots will not move at full speed without this
         bot.SetTargetMoveSpeed(1f);
 
-        var shouldSprint = ShouldSprint(actor);
-        bot.Mover.Sprint(shouldSprint);
+        // var shouldSprint = ShouldSprint(actor);
+        // bot.Mover.Sprint(shouldSprint);
 
         var lookPoint = CalculateForwardPointOnPath(movement.ActualPath.Vector3_0, bot.Position, movement.ActualPath.CurIndex) + 1.5f * Vector3.up;
         bot.Steering.LookToPoint(lookPoint, 360f);

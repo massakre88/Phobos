@@ -1,6 +1,6 @@
 ﻿# TODO:
-* Add basic objective tracking 
-* Add a mechanism to the objective system to resubmit the objective if the actor is reactivated
+* Move after-suspension retry to the objective system. It shouldn't be the movement system that decide to retry moving to the target after the bot is unsuspended. 
+* Add basic objective tracking
 * Add movement and stance status tracking to a component, so we keep track of stuff like the path angle jitter, etc.
 * Add stamina system to the movement and sprinting
 * Add simplistic door handling where the bot auto-opens nearby doors and stops sprinting if there's a door within 5 meters

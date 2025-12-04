@@ -65,8 +65,8 @@ public class Plugin : BaseUnityPlugin
         
         BrainManager.AddCustomLayer(typeof(PhobosLayer), brains,19);
 
-        // This should be the new peaceful action
-        // BrainManager.RemoveLayer("Utility peace", brains);
+        // This layer makes scavs stand still doing bugger all
+        BrainManager.RemoveLayer("AssaultEnemyFar", brains);
     }
     
     private void SetupConfig()
