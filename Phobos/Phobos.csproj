@@ -73,10 +73,6 @@
     </Reference>
     </ItemGroup>
 
-    <ItemGroup>
-      <Folder Include="Strategy\" />
-    </ItemGroup>
-
     <Target Name="PostBuild" AfterTargets="PostBuildEvent">
       <Exec Command="copy /Y &quot;$(TargetPath)&quot; &quot;$(SolutionDir)..\..\Client_Dev\bepinex\plugins\$(TargetName)\$(TargetFileName)&quot;&#xA;copy /Y &quot;$(TargetPath)&quot; &quot;$(SolutionDir)..\..\Client_Dev\bepinex\plugins\$(TargetName)\$(TargetName).pdb&quot;" />
     </Target>

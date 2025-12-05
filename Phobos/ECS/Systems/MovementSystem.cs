@@ -1,8 +1,10 @@
 ﻿using System;
 using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using Phobos.Diag;
 using Phobos.ECS.Components;
 using Phobos.ECS.Entities;
+using Phobos.Helpers;
 using Phobos.Navigation;
 using UnityEngine;
 using UnityEngine.AI;
@@ -13,13 +15,31 @@ public class MovementSystem(NavJobExecutor navJobExecutor) : BaseActorSystem
 {
     private const int RetryLimit = 10;
 
-    // If we are further than this from a corner, allow the bot to sprint even if there are sharp turns later.
-    private const float SprintCancelPathCornerDistanceSqr = 10f * 10f;
     private const float TargetReachedDistanceSqr = 5f * 5f;
-    private const float TargetVicinityDistanceSqr = 150f * 150f;
+    private const float TargetVicinityDistanceSqr = 35f * 35f;
     private const float LookAheadDistanceSqr = 1.5f;
 
     private readonly Queue<ValueTuple<Actor, NavJob>> _moveJobs = new(20);
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void MoveToDestination(Actor actor, Vector3 destination)
+    {
+        ScheduleMoveJob(actor, destination);
+        actor.Movement.Retry = 0;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void MoveRetry(Actor actor)
+    {
+        MoveRetry(actor, actor.Movement.Target.Position);
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void MoveRetry(Actor actor, Vector3 destination)
+    {
+        ScheduleMoveJob(actor, destination);
+        actor.Movement.Retry++;
+    }
 
     public void Update()
     {
@@ -47,31 +67,19 @@ public class MovementSystem(NavJobExecutor navJobExecutor) : BaseActorSystem
         for (var i = 0; i < Actors.Count; i++)
         {
             var actor = Actors[i];
-            
+
             // Bail out if the actor is inactive
             if (!actor.IsActive)
             {
                 // Set status to suspended if we were active
                 if (actor.Movement.Status == MovementStatus.Active)
                     actor.Movement.Status = MovementStatus.Suspended;
-                        
+
                 continue;
             }
 
             UpdateMovement(actor);
         }
-    }
-
-    public void MoveToDestination(Actor actor, Vector3 destination)
-    {
-        ScheduleMoveJob(actor, destination);
-        actor.Movement.Retry = 0;
-    }
-
-    private void MoveRetry(Actor actor)
-    {
-        ScheduleMoveJob(actor, actor.Movement.Target.Position);
-        actor.Movement.Retry++;
     }
 
     private void ScheduleMoveJob(Actor actor, Vector3 destination)
@@ -84,6 +92,7 @@ public class MovementSystem(NavJobExecutor navJobExecutor) : BaseActorSystem
         // DebugLog.Write($"{actor} {actor.Movement} move job scheduled");
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void StartMovement(Actor actor, NavJob job)
     {
         if (job.Status == NavMeshPathStatus.PathInvalid)
@@ -104,6 +113,7 @@ public class MovementSystem(NavJobExecutor navJobExecutor) : BaseActorSystem
         // DebugLog.Write($"{actor} {actor.Movement} movement commenced");
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void UpdateMovement(Actor actor)
     {
         var bot = actor.Bot;
@@ -111,7 +121,7 @@ public class MovementSystem(NavJobExecutor navJobExecutor) : BaseActorSystem
 
         if (movement.Status is MovementStatus.Failed or MovementStatus.Suspended)
             return;
-        
+
         // Failsafe
         if (movement.Target == null)
         {
@@ -156,102 +166,31 @@ public class MovementSystem(NavJobExecutor navJobExecutor) : BaseActorSystem
         bot.BotLay.GetUp(true);
 
         // Bots will not move at full speed without this
-        bot.SetTargetMoveSpeed(1f);
+        var targetSpeed = Mathf.Lerp(0.65f, 1f, movement.Target.DistanceSqr / TargetVicinityDistanceSqr);
+        bot.SetTargetMoveSpeed(targetSpeed);
 
         // var shouldSprint = ShouldSprint(actor);
         // bot.Mover.Sprint(shouldSprint);
 
-        var lookPoint = CalculateForwardPointOnPath(movement.ActualPath.Vector3_0, bot.Position, movement.ActualPath.CurIndex) + 1.5f * Vector3.up;
+
+        var lookPoint = PathHelper.CalculateForwardPointOnPath(
+            movement.ActualPath.Vector3_0, bot.Position, movement.ActualPath.CurIndex, LookAheadDistanceSqr
+        ) + 1.5f * Vector3.up;
         bot.Steering.LookToPoint(lookPoint, 360f);
     }
 
-    private static bool ShouldSprint(Actor actor)
-    {
-        var bot = actor.Bot;
-        var isFarFromDestination = actor.Movement.Target.DistanceSqr > TargetVicinityDistanceSqr;
-        var isOutside = bot.AIData.EnvironmentId == 0;
-        var isAbleToSprint = !bot.Mover.NoSprint && bot.GetPlayer.MovementContext.CanSprint;
-        var isPathSmooth = CalculatePathAngleJitter(
-            bot.Position,
-            actor.Movement.ActualPath.Vector3_0,
-            actor.Movement.ActualPath.CurIndex
-        ) < 15f;
-
-        return isOutside && isAbleToSprint && isPathSmooth && isFarFromDestination;
-    }
-
-    private static Vector3 CalculateForwardPointOnPath(Vector3[] corners, Vector3 position, int cornerIndex)
-    {
-        if (cornerIndex >= corners.Length)
-            return position;
-
-        // Track squared distance remaining
-        var remainingDistanceSqr = LookAheadDistanceSqr;
-        // Start from bot's current position
-        var currentPoint = position;
-        // Start checking from the next corner
-        var currentIndex = cornerIndex;
-
-        while (remainingDistanceSqr > 0 && currentIndex < corners.Length)
-        {
-            // Calculate vector and squared distance to the next corner
-            var toCorner = corners[currentIndex] - currentPoint;
-            var distanceToCornerSqr = toCorner.sqrMagnitude;
-
-            // If the next corner is far enough, our target point is along this segment
-            if (distanceToCornerSqr >= remainingDistanceSqr)
-            {
-                // Need actual distance for the final lerp/movement calculation
-                var remainingDistance = Mathf.Sqrt(remainingDistanceSqr);
-                return currentPoint + toCorner.normalized * remainingDistance;
-            }
-
-            // The corner is closer than our remaining distance, so "consume" this segment
-            // Subtract squared distance covered
-            remainingDistanceSqr -= distanceToCornerSqr;
-            // Jump to this corner
-            currentPoint = corners[currentIndex];
-            // Move to next corner
-            currentIndex++;
-        }
-
-        // We've run out of path - return the final corner as the furthest point
-        return corners[^1];
-    }
-    
-    private static float CalculatePathAngleJitter(Vector3 position, Vector3[] path, int startIndex = 0, int count = 2)
-    {
-        // Clamp count to available corners
-        count = Mathf.Min(count, path.Length - startIndex - 2);
-
-        if (count <= 0)
-            return 0f;
-
-        // Bail out if we are far from the next point
-        if ((path[startIndex] - position).sqrMagnitude > SprintCancelPathCornerDistanceSqr)
-        {
-            return 0f;
-        }
-        
-        var angleMax = 0f;
-
-        // Calculate angles between consecutive segments
-        for (var i = startIndex; i < startIndex + count; i++)
-        {
-            var pointA = path[i];
-            var pointB = path[i + 1];
-            var pointC = path[i + 2];
-
-            // Calculate direction vectors
-            var directionAb = (pointB - pointA).normalized;
-            var directionBc = (pointC - pointB).normalized;
-
-            // Calculate angle between the two direction vectors
-            var angle = Vector3.Angle(directionAb, directionBc);
-            if (angle > angleMax)
-                angleMax = angle;
-        }
-
-        return angleMax;
-    }
+    // private static bool ShouldSprint(Actor actor)
+    // {
+    //     var bot = actor.Bot;
+    //     var isFarFromDestination = actor.Movement.Target.DistanceSqr > TargetVicinityDistanceSqr;
+    //     var isOutside = bot.AIData.EnvironmentId == 0;
+    //     var isAbleToSprint = !bot.Mover.NoSprint && bot.GetPlayer.MovementContext.CanSprint;
+    //     var isPathSmooth = CalculatePathAngleJitter(
+    //         bot.Position,
+    //         actor.Movement.ActualPath.Vector3_0,
+    //         actor.Movement.ActualPath.CurIndex
+    //     ) < 15f;
+    //
+    //     return isOutside && isAbleToSprint && isPathSmooth && isFarFromDestination;
+    // }
 }
