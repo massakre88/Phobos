@@ -118,6 +118,11 @@ public class MovementSystem(NavJobExecutor navJobExecutor) : BaseActorSystem
     {
         var bot = actor.Bot;
         var movement = actor.Movement;
+        
+        // Movement control - must be always applied if we are active.
+        // The sprint flag has to be enforced on every frame, as the BSG code can sometimes decide to change it randomly.
+        // We disable sprint for now as it looks jank and can get bots into weird spots sometimes.
+        bot.Mover.Sprint(false);
 
         if (movement.Status is MovementStatus.Failed or MovementStatus.Suspended)
             return;
@@ -165,14 +170,12 @@ public class MovementSystem(NavJobExecutor navJobExecutor) : BaseActorSystem
         bot.SetPose(1f);
         bot.BotLay.GetUp(true);
 
-        // Bots will not move at full speed without this
+        // Bot movement control
+        // TODO: Add target speed as a variable in the Movement component and then have the objective tracking update it
+        //       We'll always set the target speed irrespective of a movement target being present.
         var targetSpeed = Mathf.Lerp(0.65f, 1f, movement.Target.DistanceSqr / TargetVicinityDistanceSqr);
         bot.SetTargetMoveSpeed(targetSpeed);
-
-        // var shouldSprint = ShouldSprint(actor);
-        // bot.Mover.Sprint(shouldSprint);
-
-
+        
         var lookPoint = PathHelper.CalculateForwardPointOnPath(
             movement.ActualPath.Vector3_0, bot.Position, movement.ActualPath.CurIndex, LookAheadDistanceSqr
         ) + 1.5f * Vector3.up;
