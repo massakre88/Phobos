@@ -11,7 +11,7 @@ using UnityEngine.AI;
 
 namespace Phobos.ECS.Systems;
 
-public class MovementSystem(NavJobExecutor navJobExecutor) : BaseActorSystem
+public class MovementSystem(NavJobExecutor navJobExecutor, ActorList liveActors)
 {
     private const int RetryLimit = 10;
 
@@ -56,7 +56,7 @@ public class MovementSystem(NavJobExecutor navJobExecutor) : BaseActorSystem
                     continue;
                 }
 
-                // Bail out if the actor is inactive or the pathfinding failed
+                // Discard the move job if the actor is inactive (Phobos might be deactivated, or the bot died, etc...)
                 if (!actor.IsActive)
                     continue;
 
@@ -64,9 +64,9 @@ public class MovementSystem(NavJobExecutor navJobExecutor) : BaseActorSystem
             }
         }
 
-        for (var i = 0; i < Actors.Count; i++)
+        for (var i = 0; i < liveActors.Count; i++)
         {
-            var actor = Actors[i];
+            var actor = liveActors[i];
 
             // Bail out if the actor is inactive
             if (!actor.IsActive)

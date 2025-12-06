@@ -1,8 +1,11 @@
 ﻿using System;
 using EFT;
+using Phobos.Data;
 using Phobos.ECS.Components;
 
 namespace Phobos.ECS.Entities;
+
+public class ActorList(int capacity) : ExtendedList<Actor>(capacity);
 
 public class Actor(BotOwner bot) : IEquatable<Actor>
 {

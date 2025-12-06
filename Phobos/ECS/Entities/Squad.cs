@@ -1,14 +1,15 @@
 ﻿using System;
-using System.Collections.Generic;
+using Phobos.Data;
 using Phobos.ECS.Components;
-using Phobos.Extensions;
 
 namespace Phobos.ECS.Entities;
+
+public class SquadList(int capacity) : ExtendedList<Squad>(capacity);
 
 public class Squad(int id) : IEquatable<Squad>
 {
     public readonly SquadTask Task = new();
-    public readonly List<Actor> Members = [];
+    public readonly ActorList Members = new(6);
     
     private readonly int _id = id;
     
@@ -21,7 +22,7 @@ public class Squad(int id) : IEquatable<Squad>
 
     public void RemoveMember(Actor member)
     {
-        Members.RemoveSwap(member);
+        Members.SwapRemove(member);
     }
     
     public bool Equals(Squad other)

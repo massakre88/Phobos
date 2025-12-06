@@ -2,18 +2,17 @@
 using Phobos.Diag;
 using Phobos.ECS.Entities;
 using Phobos.ECS.Helpers;
-using Phobos.Extensions;
 using Phobos.Objectives;
 
 namespace Phobos.ECS.Systems;
 
-public class SquadOrchestrator(ActorTaskSystem actorTaskSystem, ObjectiveQueue objectiveQueue) : IActorSystem
+public class SquadOrchestrator(ActorTaskSystem actorTaskSystem, ObjectiveQueue objectiveQueue)
 {
     private readonly FramePacing _pacing = new(10);
     
-    private readonly List<Squad> _squads = [];
-    private readonly List<Squad> _emptySquads = [];
-    private readonly Dictionary<int, Squad> _squadIdMap = new();
+    private readonly SquadList _squads = new(16);
+    private readonly SquadList _emptySquads = new(8);
+    private readonly Dictionary<int, Squad> _squadIdMap = new(16);
     
     private readonly SquadTaskSystem _squadsTaskSystem = new(actorTaskSystem, objectiveQueue);
 
@@ -39,7 +38,7 @@ public class SquadOrchestrator(ActorTaskSystem actorTaskSystem, ObjectiveQueue o
             _squads.Add(squad);
             DebugLog.Write($"Registered new {squad}");
         }
-        else if(_emptySquads.RemoveSwap(squad))
+        else if(_emptySquads.SwapRemove(squad))
         {
             // Move the empty squad back to the main list
             _squads.Add(squad);
@@ -61,7 +60,7 @@ public class SquadOrchestrator(ActorTaskSystem actorTaskSystem, ObjectiveQueue o
         
         DebugLog.Write($"{squad} is empty and deactivated");
 
-        _squads.RemoveSwap(squad);
+        _squads.SwapRemove(squad);
         _emptySquads.Add(squad);
     }
 }

@@ -5,7 +5,7 @@ using Phobos.Objectives;
 
 namespace Phobos.ECS.Systems;
 
-public class ActorTaskSystem(MovementSystem movementSystem) : BaseActorSystem
+public class ActorTaskSystem(MovementSystem movementSystem, ActorList liveActors)
 {
     public void AssignObjective(Actor actor, Objective objective)
     {
@@ -16,9 +16,9 @@ public class ActorTaskSystem(MovementSystem movementSystem) : BaseActorSystem
 
     public void Update()
     {
-        for (var i = 0; i < Actors.Count; i++)
+        for (var i = 0; i < liveActors.Count; i++)
         {
-            var actor = Actors[i];
+            var actor = liveActors[i];
 
             if (actor.Movement.Status == MovementStatus.Completed)
             {

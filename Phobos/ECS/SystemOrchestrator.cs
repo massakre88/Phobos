@@ -1,5 +1,4 @@
-﻿using System.Collections.Generic;
-using Phobos.Diag;
+﻿using Phobos.Diag;
 using Phobos.ECS.Entities;
 using Phobos.ECS.Systems;
 using Phobos.Navigation;
@@ -9,41 +8,36 @@ namespace Phobos.ECS;
 
 // ReSharper disable MemberCanBePrivate.Global
 // Every AI project needs a shitty, llm generated component name like "orcehstrator".
-public class SystemOrchestrator : IActorSystem
+public class SystemOrchestrator
 {
     public readonly MovementSystem MovementSystem;
     public readonly ActorTaskSystem ActorTaskSystem;
     public readonly SquadOrchestrator SquadOrchestrator;
-    private readonly List<IActorSystem> _systems;
+    public readonly ActorList LiveActors;
 
     public SystemOrchestrator(NavJobExecutor navJobExecutor, ObjectiveQueue objectiveQueue)
     {
+        LiveActors = new ActorList(32);
+        
         DebugLog.Write("Creating MovementSystem");
-        MovementSystem = new MovementSystem(navJobExecutor);
+        MovementSystem = new MovementSystem(navJobExecutor, LiveActors);
         DebugLog.Write("Creating ActorTaskSystem");
-        ActorTaskSystem = new ActorTaskSystem(MovementSystem);
+        ActorTaskSystem = new ActorTaskSystem(MovementSystem, LiveActors);
         DebugLog.Write("Creating SquadOrchestrator");
         SquadOrchestrator = new SquadOrchestrator(ActorTaskSystem, objectiveQueue);
-
-        _systems = [MovementSystem, ActorTaskSystem, SquadOrchestrator];
     }
 
     public void AddActor(Actor actor)
     {
         DebugLog.Write($"Adding {actor} to Phobos systems");
-        for (var i = 0; i < _systems.Count; i++)
-        {
-            _systems[i].AddActor(actor);
-        }
+        LiveActors.Add(actor);
+        SquadOrchestrator.AddActor(actor);
     }
 
     public void RemoveActor(Actor actor)
     {
-        DebugLog.Write($"Removing {actor} from Phobos systems");
-        for (var i = 0; i < _systems.Count; i++)
-        {
-            _systems[i].RemoveActor(actor);
-        }
+        LiveActors.SwapRemove(actor);
+        SquadOrchestrator.RemoveActor(actor);
     }
 
     public void Update()

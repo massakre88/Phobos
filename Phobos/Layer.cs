@@ -51,7 +51,7 @@ public class PhobosLayer : CustomLayer
     private void OnDead(Player player, IPlayer lastAggressor, DamageInfoStruct damageInfo, EBodyPart part)
     {
         player.OnPlayerDead -= OnDead;
-        _actor.IsLayerActive = true;
+        _actor.IsLayerActive = false;
         _systemOrchestrator.RemoveActor(_actor);
     }
 
