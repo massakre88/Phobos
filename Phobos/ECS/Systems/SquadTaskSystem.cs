@@ -15,11 +15,11 @@ public class SquadTaskSystem(ObjectiveSystem objectiveSystem, LocationQueue loca
         {
             var squad = squads[i];
             
-            if (squad.ObjectiveLocation == null)
+            if (squad.TargetLocation == null)
             {
                 // If the squad does not have an objective yet, grab one.
                 var location = locationQueue.Next();
-                squad.ObjectiveLocation = location;
+                squad.TargetLocation = location;
                 DebugLog.Write($"Assigned {location} to {squad}");
             }
 
@@ -36,7 +36,7 @@ public class SquadTaskSystem(ObjectiveSystem objectiveSystem, LocationQueue loca
                 switch (member.Objective.Status)
                 {
                     case ObjectiveStatus.Suspended:
-                        objectiveSystem.BeginObjective(member, squad.ObjectiveLocation);
+                        objectiveSystem.BeginObjective(member, squad.TargetLocation);
                         break;
                     case ObjectiveStatus.Active:
                         break;
@@ -49,14 +49,18 @@ public class SquadTaskSystem(ObjectiveSystem objectiveSystem, LocationQueue loca
                 }
             }
 
-            // TODO: finish this
-            // if (finishedCount == squad.Count)
-            // {
-            //     DebugLog.Write($"{squad} objective finished, assigning new objective.");
-            //     squad.ObjectiveLocation = null;
-            // }
-            
-            // Squad members who are too far ahead will get slowed down
+            if (finishedCount == squad.Count)
+            {
+                DebugLog.Write($"{squad} objective finished, resetting target locations.");
+                squad.TargetLocation = null;
+                
+                for (var j = 0; j < squad.Members.Count; j++)
+                {
+                    var member = squad.Members[j];
+                    member.Objective.Status = ObjectiveStatus.Suspended;
+                    member.Objective.Location = null;
+                }
+            }
         }
     }
 }

@@ -19,6 +19,6 @@ public class Objective
     
     public override string ToString()
     {
-        return $"ActorTask({Location} Status: {Status} Dist: {Mathf.Sqrt(DistanceSqr)})";
+        return $"Objective({Location} Status: {Status} Dist: {Mathf.Sqrt(DistanceSqr)})";
     }
 }

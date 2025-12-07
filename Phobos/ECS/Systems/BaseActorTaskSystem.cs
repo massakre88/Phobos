@@ -21,7 +21,9 @@ public class BaseActorTaskSystem
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     protected void RemoveActor(Actor actor)
     {
+        if (!_actorSet.Remove(actor))
+            return;
+        
         Actors.SwapRemove(actor);
-        _actorSet.Remove(actor);
     }
 }

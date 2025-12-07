@@ -39,17 +39,19 @@ public class ObjectiveSystem(MovementSystem movementSystem) : BaseActorTaskSyste
     }
     
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void UpdateObjective(Actor actor)
+    private void UpdateObjective(Actor actor)
     {
         var bot = actor.Bot;
         var objective = actor.Objective;
-        
-        if (objective.Status is ObjectiveStatus.Failed or ObjectiveStatus.Suspended)
-            return;
 
         if (actor.Movement.Status == MovementStatus.Failed)
         {
             objective.Status = ObjectiveStatus.Failed;
+        }
+        
+        if (objective.Status != ObjectiveStatus.Active)
+        {
+            RemoveActor(actor);
             return;
         }
         

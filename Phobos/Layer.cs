@@ -108,6 +108,6 @@ public class PhobosLayer : CustomLayer
         sb.AppendLine($"Pose: {BotOwner.GetPlayer.MovementContext.PoseLevel} Speed: {BotOwner.Mover?.DestMoveSpeed}");
         sb.AppendLine($"Standby: {BotOwner.StandBy.StandByType} candostandby: {BotOwner.StandBy.CanDoStandBy}");
         sb.AppendLine("*** Squad ***");
-        sb.AppendLine($"{_squad}, size: {_squad.Count}, {_squad.ObjectiveLocation}");
+        sb.AppendLine($"{_squad}, size: {_squad.Count}, {_squad.TargetLocation}");
     }
 }
