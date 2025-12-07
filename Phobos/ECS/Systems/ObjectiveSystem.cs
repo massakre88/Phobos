@@ -85,7 +85,6 @@ public class ObjectiveSystem(MovementSystem movementSystem) : BaseActorTaskSyste
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void ResetObjective(Actor actor)
     {
-        actor.Objective.Location = null;
         actor.Objective.Status = ObjectiveStatus.Suspended;
         actor.Movement.Speed = 1f;
     }

@@ -116,7 +116,7 @@ public class MovementSystem(NavJobExecutor navJobExecutor, ActorList liveActors)
         bot.Mover.Sprint(false);
         bot.SetTargetMoveSpeed(movement.Speed);
 
-        if (movement.Status is MovementStatus.Failed or MovementStatus.Suspended)
+        if (movement.Status != MovementStatus.Active)
             return;
 
         // Failsafe
