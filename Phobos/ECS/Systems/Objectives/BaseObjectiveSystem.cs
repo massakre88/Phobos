@@ -6,26 +6,26 @@ namespace Phobos.ECS.Systems.Objectives;
 
 public abstract class BaseObjectiveSystem
 {
-    protected readonly ActorList Actors = new(16);
+    protected readonly AgentList Agents = new(16);
     private readonly HashSet<Agent> _actorSet = [];
-    
-    public abstract void SuspendObjective(Agent agent);
+
+    public abstract void ResetObjective(Agent agent);
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected void AddActor(Agent agent)
+    protected void AddAgent(Agent agent)
     {
         if (!_actorSet.Add(agent))
             return;
 
-        Actors.Add(agent);
+        Agents.Add(agent);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    protected void RemoveActor(Agent agent)
+    public void RemoveAgent(Agent agent)
     {
         if (!_actorSet.Remove(agent))
             return;
         
-        Actors.SwapRemove(agent);
+        Agents.SwapRemove(agent);
     }
 }

@@ -16,8 +16,9 @@ public class QuestObjectiveSystem(MovementSystem movementSystem) : BaseObjective
     public void BeginObjective(Agent agent, Location location)
     {
         var objective = agent.Task.Quest;
-        objective.DistanceSqr = (objective.Location.Position - agent.Bot.Position).sqrMagnitude;
+        
         objective.Location = location;
+        objective.DistanceSqr = (objective.Location.Position - agent.Bot.Position).sqrMagnitude;
         
         // Short circuit if we are already within the AO
         if (objective.DistanceSqr <= ObjectiveReachedDistSqr)
@@ -29,35 +30,31 @@ public class QuestObjectiveSystem(MovementSystem movementSystem) : BaseObjective
         objective.Status = ObjectiveStatus.Active;
         agent.Movement.Speed = 1f;
         
-        AddActor(agent);
+        AddAgent(agent);
         
         movementSystem.MoveToDestination(agent, location.Position);
         DebugLog.Write($"Assigned {location} to {agent}");
     }
 
-    public override void SuspendObjective(Agent agent)
+    public override void ResetObjective(Agent agent)
     {
-        RemoveActor(agent);
-
         var objective = agent.Task.Quest;
-        
-        if (objective.Status == ObjectiveStatus.Active)
-        {
-            objective.Status = ObjectiveStatus.Suspended;
-        }
+        objective.Status = ObjectiveStatus.Suspended;
+        objective.DistanceSqr = 0f;
+        objective.Location = null;
     }
-
+    
     public void Update()
     {
-        for (var i = 0; i < Actors.Count; i++)
+        for (var i = 0; i < Agents.Count; i++)
         {
-            var actor = Actors[i];
+            var actor = Agents[i];
             UpdateObjective(actor);
         }
     }
     
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void UpdateObjective(Agent agent)
+    private void UpdateObjective(Agent agent)
     {
         var bot = agent.Bot;
         var objective = agent.Task.Quest;
@@ -67,11 +64,9 @@ public class QuestObjectiveSystem(MovementSystem movementSystem) : BaseObjective
             objective.Status = ObjectiveStatus.Failed;
         }
         
-        // Failsafe
-        if (objective.Location == null)
+        if (objective.Status != ObjectiveStatus.Active)
         {
-            Plugin.Log.LogError($"Null objective for {agent} even though the status is {objective.Status}");
-            objective.Status = ObjectiveStatus.Suspended;
+            RemoveAgent(agent);
             return;
         }
         
@@ -80,6 +75,7 @@ public class QuestObjectiveSystem(MovementSystem movementSystem) : BaseObjective
         if (objective.DistanceSqr <= ObjectiveReachedDistSqr)
         {
             objective.Status = ObjectiveStatus.Success;
+            RemoveAgent(agent);
         }
         
         var targetSpeed = Mathf.Lerp(0.5f, 1f, Mathf.Pow(objective.DistanceSqr / ObjectiveVicinityDistSqr, 2));

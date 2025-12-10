@@ -41,7 +41,7 @@ public class PhobosLayer : CustomLayer
         _systemOrchestrator = Singleton<SystemOrchestrator>.Instance;
         
         _agent = new Agent(botOwner);
-        _systemOrchestrator.AddActor(_agent);
+        _systemOrchestrator.AddAgent(_agent);
         _squad = _systemOrchestrator.SquadOrchestrator.GetSquad(_agent.SquadId);
 
         botOwner.Brain.BaseBrain.OnLayerChangedTo += OnLayerChanged;
@@ -52,7 +52,7 @@ public class PhobosLayer : CustomLayer
     {
         player.OnPlayerDead -= OnDead;
         _agent.IsLayerActive = false;
-        _systemOrchestrator.RemoveActor(_agent);
+        _systemOrchestrator.RemoveAgent(_agent);
     }
 
     private void OnLayerChanged(AICoreLayerClass<BotLogicDecision> layer)

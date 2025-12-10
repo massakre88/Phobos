@@ -7,6 +7,7 @@ public class Quest() : Objective(ObjectiveType.Quest)
 {
     public Location Location;
     public float DistanceSqr;
+    public ObjectiveStatus Status = ObjectiveStatus.Suspended;
     
     public override string ToString()
     {

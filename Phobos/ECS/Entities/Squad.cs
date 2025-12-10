@@ -10,7 +10,7 @@ public class SquadList(int capacity) : ExtendedList<Squad>(capacity);
 public class Squad(int id) : IEquatable<Squad>
 {
     public Location Objective;
-    public readonly ActorList Members = new(6);
+    public readonly AgentList Members = new(6);
     
     private readonly int _id = id;
     

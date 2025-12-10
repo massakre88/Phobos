@@ -75,29 +75,46 @@ public class SquadStrategySystem
             {
                 if (task.Current != null)
                 {
-                    _objectiveSystems[task.Current.TypeId].SuspendObjective(member);
+                    _objectiveSystems[task.Current.TypeId].RemoveAgent(member);
                     task.Current = null;
                 }
-
+                
                 // If we haven't failed, suspend the strategic task so we can resume
-                if (task.Quest.Status != ObjectiveStatus.Failed)
-                    task.Quest.Status = ObjectiveStatus.Suspended;
+                if (task.Quest.Status != ObjectiveStatus.Failed && task.Quest.Status != ObjectiveStatus.Suspended)
+                    _questObjectiveSystem.ResetObjective(member);
             }
             else
             {
-                if (task.Current != task.Assist && TryFindSqadMemberInCombat(out var agentInCombat))
+                var prevTask = task.Current;
+                
+                // TODO: Add back the objective status to the Objective base class
+                //       We'll need it to be able to determine that the current task completed and we can switch to something else,
+                //       Otherwise the quest task will interrupt the assist task. 
+                
+                if (task.Current != task.Assist && TryFindSqadMemberInCombat(out _))
                 {
                     DebugLog.Write($"Assigning {member} to Assist objective.");
                     // TODO: Implement assist
+                    
+                    // Needs an unconditional reset since the bot may move away even from a completed objective.
+                    if (task.Quest.Status != ObjectiveStatus.Failed)
+                        _questObjectiveSystem.ResetObjective(member);
                 }
                 else if (task.Current != task.Guard && task.Quest.Status == ObjectiveStatus.Success)
                 {
                     DebugLog.Write($"Assigning {member} to Guard objective.");
                     // TODO: Implement guarding
                 }
-                else if (task.Quest.Status == ObjectiveStatus.Suspended)
+                else if (task.Current != task.Quest && task.Quest.Status == ObjectiveStatus.Suspended)
                 {
                     _questObjectiveSystem.BeginObjective(member, squad.Objective);
+                }
+                
+                // The objective changed, remove the agent from the previous objective
+                // NB: We can't reset the objective here because it'd potentially reset the quest status even if we are just guarding
+                if (prevTask != task.Current && prevTask != null)
+                {
+                    _objectiveSystems[task.Current.TypeId].RemoveAgent(member);
                 }
             }
 
@@ -119,16 +136,17 @@ public class SquadStrategySystem
                 member.IsPhobosActive = true;
                 member.Task.Current = null;
                 
-                for (var j = 0; j < member.Task.Objectives.Length; j++)
+                for (var j = 0; j < _objectiveSystems.Length; j++)
                 {
-                    var objective = member.Task.Objectives[j];
-                    objective.Status = ObjectiveStatus.Suspended;
+                    var system = _objectiveSystems[j];
+                    system.RemoveAgent(member);
+                    system.ResetObjective(member);
                 }
             }
         }
     }
 
-    private bool TryFindSqadMemberInCombat(out Agent agent)
+    private static bool TryFindSqadMemberInCombat(out Agent agent)
     {
         agent = null;
         return false;

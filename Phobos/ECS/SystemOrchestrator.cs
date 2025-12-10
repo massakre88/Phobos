@@ -17,14 +17,14 @@ public class SystemOrchestrator
     public readonly AssistObjectiveSystem AssistObjectiveSystem;
     
     public readonly MovementSystem MovementSystem;
-    public readonly ActorList LiveActors;
+    public readonly AgentList LiveAgents;
 
     public SystemOrchestrator(NavJobExecutor navJobExecutor, LocationQueue locationQueue)
     {
-        LiveActors = new ActorList(32);
+        LiveAgents = new AgentList(32);
         
         DebugLog.Write("Creating MovementSystem");
-        MovementSystem = new MovementSystem(navJobExecutor, LiveActors);
+        MovementSystem = new MovementSystem(navJobExecutor, LiveAgents);
         
         DebugLog.Write("Creating StrategicObjectiveSystem");
         QuestObjectiveSystem = new QuestObjectiveSystem(MovementSystem);
@@ -37,17 +37,17 @@ public class SystemOrchestrator
         SquadOrchestrator = new SquadOrchestrator(QuestObjectiveSystem, GuardObjectiveSystem, AssistObjectiveSystem, locationQueue);
     }
 
-    public void AddActor(Agent agent)
+    public void AddAgent(Agent agent)
     {
         DebugLog.Write($"Adding {agent} to Phobos systems");
-        LiveActors.Add(agent);
-        SquadOrchestrator.AddActor(agent);
+        LiveAgents.Add(agent);
+        SquadOrchestrator.AddAgent(agent);
     }
 
-    public void RemoveActor(Agent agent)
+    public void RemoveAgent(Agent agent)
     {
-        LiveActors.SwapRemove(agent);
-        SquadOrchestrator.RemoveActor(agent);
+        LiveAgents.SwapRemove(agent);
+        SquadOrchestrator.RemoveAgent(agent);
     }
 
     public void Update()

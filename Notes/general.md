@@ -1,9 +1,13 @@
 ﻿# TODO:
+* Get basic objective system online, doesn't have to be pretty
+* Spend a bit of time refining the movement system so that it works well, understands doors, etc.
 * Add simplistic door handling where the bot auto-opens nearby doors and stops sprinting if there's a door within 5 meters
 * Sprinting
   * Re-enable sprinting
+  * Make sprinting a toggle on the move action, once the action finishes, we reset everything to default.
   * Add stamina system to the movement and sprinting
   * Add movement and stance status tracking to a component, so we keep track of stuff like the path angle jitter, etc.
+* Implement GOAP
 
 # Strategic Planning
 * Implement a GOAP (or task queue) like setup at the squad level, not the actors as thought initially

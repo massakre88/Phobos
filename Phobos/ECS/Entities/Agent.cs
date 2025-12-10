@@ -6,7 +6,7 @@ using Phobos.ECS.Components;
 
 namespace Phobos.ECS.Entities;
 
-public class ActorList(int capacity) : ExtendedList<Agent>(capacity);
+public class AgentList(int capacity) : ExtendedList<Agent>(capacity);
 
 public class Agent(BotOwner bot) : IEquatable<Agent>
 {

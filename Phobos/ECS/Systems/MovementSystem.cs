@@ -11,7 +11,7 @@ using UnityEngine.AI;
 
 namespace Phobos.ECS.Systems;
 
-public class MovementSystem(NavJobExecutor navJobExecutor, ActorList liveActors)
+public class MovementSystem(NavJobExecutor navJobExecutor, AgentList liveAgents)
 {
     private const int RetryLimit = 10;
 
@@ -26,40 +26,40 @@ public class MovementSystem(NavJobExecutor navJobExecutor, ActorList liveActors)
         {
             for (var i = 0; i < _moveJobs.Count; i++)
             {
-                var (actor, job) = _moveJobs.Dequeue();
+                var (agent, job) = _moveJobs.Dequeue();
 
                 // If the job is not ready, re-enqueue and skip to the next
                 if (!job.IsReady)
                 {
-                    _moveJobs.Enqueue((actor, job));
+                    _moveJobs.Enqueue((agent, job));
                     continue;
                 }
 
-                // Discard the move job if the actor is inactive (Phobos might be deactivated, or the bot died, etc...)
-                if (!actor.IsActive)
+                // Discard the move job if the agent is inactive (Phobos might be deactivated, or the bot died, etc...)
+                if (!agent.IsActive)
                     continue;
 
-                StartMovement(actor, job);
+                StartMovement(agent, job);
             }
         }
 
-        for (var i = 0; i < liveActors.Count; i++)
+        for (var i = 0; i < liveAgents.Count; i++)
         {
-            var actor = liveActors[i];
+            var agent = liveAgents[i];
 
-            // Bail out if the actor is inactive
-            if (!actor.IsActive)
+            // Bail out if the agent is inactive
+            if (!agent.IsActive)
             {
                 // Set status to suspended if we were active
-                if (actor.Movement.Status == MovementStatus.Active)
+                if (agent.Movement.Status == MovementStatus.Active)
                 {
-                    ResetTarget(actor.Movement, MovementStatus.Suspended);
+                    ResetTarget(agent.Movement, MovementStatus.Suspended);
                 }
 
                 continue;
             }
 
-            UpdateMovement(actor);
+            UpdateMovement(agent);
         }
     }
     

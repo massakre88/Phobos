@@ -38,7 +38,7 @@ public class SquadOrchestrator(
         _squadsStrategySystem.Update(_squads);
     }
 
-    public void AddActor(Agent agent)
+    public void AddAgent(Agent agent)
     {
         if (!_squadIdMap.TryGetValue(agent.SquadId, out var squad))
         {
@@ -58,7 +58,7 @@ public class SquadOrchestrator(
         DebugLog.Write($"Added {agent} to {squad} with {squad.Count} members");
     }
 
-    public void RemoveActor(Agent agent)
+    public void RemoveAgent(Agent agent)
     {
         if (!_squadIdMap.TryGetValue(agent.SquadId, out var squad)) return;
 
