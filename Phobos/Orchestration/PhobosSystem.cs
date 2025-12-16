@@ -12,16 +12,18 @@ public class PhobosSystem
     
     public readonly ActionSystem ActionSystem;
     public readonly SquadSystem SquadSystem;
+
+    public readonly LocationQueue ObjectiveQueue;
     
     private readonly Telemetry _telemetry;
 
     public PhobosSystem(Telemetry telemetry)
     {
-        var objectiveQueue = new LocationQueue();
+        ObjectiveQueue = new LocationQueue();
         
         Dataset = new Dataset();
         ActionSystem = new ActionSystem(Dataset);
-        SquadSystem =  new SquadSystem(objectiveQueue);
+        SquadSystem =  new SquadSystem();
         
         _telemetry = telemetry;
     }

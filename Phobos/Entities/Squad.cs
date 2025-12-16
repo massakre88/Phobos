@@ -1,19 +1,22 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using Phobos.Helpers;
-using Phobos.Navigation;
+using Phobos.Tasks.Strategies;
 
 namespace Phobos.Entities;
 
 
-public class Squad(int id) : IEquatable<Squad>
+public class Squad(int id) : Entity(id)
 {
-    public Location Objective;
     public readonly List<Agent> Members = new(6);
     
-    private readonly int _id = id;
+    public readonly List<StrategyScore> Strategies = new(16);
+    public BaseStrategy CurrentStrategy;
     
-    public int Count => Members.Count;
+    public int Count {
+        [MethodImpl(MethodImplOptions.AggressiveInlining)]
+        get => Members.Count;
+    }
 
     public void AddAgent(Agent member)
     {
@@ -25,28 +28,8 @@ public class Squad(int id) : IEquatable<Squad>
         Members.SwapRemove(member);
     }
     
-    public bool Equals(Squad other)
-    {
-        if (ReferenceEquals(other, null))
-            return false;
-
-        return _id == other._id;
-    }
-    
-    public override bool Equals(object obj)
-    {
-        if (obj is null) return false;
-        if (ReferenceEquals(this, obj)) return true;
-        return obj.GetType() == GetType() && Equals((Squad)obj);
-    }
-
-    public override int GetHashCode()
-    {
-        return _id;
-    }
-
     public override string ToString()
     {
-        return $"Squad(id: {_id})";
+        return $"Squad(id: {Id})";
     }
 }

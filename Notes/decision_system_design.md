@@ -42,6 +42,9 @@ Squads will influence agent behavior by modifying specific components. E.g. the 
 ## Implementation
 Similar architecture to the agent utility system.
 
+* Squads will have components as well (prefixed by Squad*)
+* Squad strategies will loop over squads, and then in turn can loop over agents.
+
 ```csharp
 class Strategy
 {
@@ -76,31 +79,3 @@ class StrategySystem
     // ... pretty much the same logic as ActionSystem, but operate on squads.
 }
 ```
-
-### Strategy
-* Like Action but operates on squads
-* Extracts out component arrays for both agents and squads.
-* The Update() method gets the squad components from the arrays based on the Squad Id.
-* Agent level components can be retrieved by iterating through the agents in the squad and using their id into the agent level components.
-
-* SquadSystem
-  * 
-
-
-### SquadSystem
-* Assigns agents to squads
-
-### SquadManager
-* Manages a single squad
-* Data:
-  * Squad entity
-  * 
-* Execution:
-  * Iterate through each strategy 
-
-### Strategy
-* Since all agents in a squad must be available to each strategy, strategies do not keep an internal list of agents - the squad manager does that.
-* The squad calculates the utility for each strategy
-* The squad picks the strategy with the highest utility
-* That strategy is executed.
-* All agents 

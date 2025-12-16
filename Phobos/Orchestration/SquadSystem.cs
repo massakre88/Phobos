@@ -2,11 +2,10 @@
 using Phobos.Diag;
 using Phobos.Entities;
 using Phobos.Helpers;
-using Phobos.Navigation;
 
 namespace Phobos.Orchestration;
 
-public class SquadSystem(LocationQueue locationQueue)
+public class SquadSystem()
 {
     private readonly TimePacing _pacing = new(1);
 
@@ -21,17 +20,17 @@ public class SquadSystem(LocationQueue locationQueue)
         if (_pacing.Blocked())
             return;
 
-        for (var i = 0; i < _squads.Count; i++)
-        {
-            var squad = _squads[i];
-
-            if (squad.Objective != null) continue;
-
-            // If the squad does not have an objective yet, grab one.
-            var location = locationQueue.Next();
-            squad.Objective = location;
-            DebugLog.Write($"Assigned {location} to {squad}");
-        }
+        // for (var i = 0; i < _squads.Count; i++)
+        // {
+        //     var squad = _squads[i];
+        //
+        //     if (squad.Objective != null) continue;
+        //
+        //     // If the squad does not have an objective yet, grab one.
+        //     var location = locationQueue.Next();
+        //     squad.Objective = location;
+        //     DebugLog.Write($"Assigned {location} to {squad}");
+        // }
     }
 
     public void AddAgent(Agent agent)

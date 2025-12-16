@@ -1,14 +1,12 @@
 ﻿using Phobos.Components;
 using Phobos.Data;
 using Phobos.Entities;
-using Phobos.Tasks;
-using Phobos.Tasks.Actions;
 
-namespace Phobos.Actions;
+namespace Phobos.Tasks.Actions;
 
 public class GuardAction(Dataset dataset) : BaseAction(hysteresis: 0.05f)
 {
-    private readonly ComponentArray<GuardComponent> _guardComponents = dataset.GetComponentArray<GuardComponent>();
+    private readonly ComponentArray<Guard> _guardComponents = dataset.GetComponentArray<Guard>();
 
     public override void UpdateUtility()
     {

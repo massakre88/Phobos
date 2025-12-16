@@ -3,7 +3,7 @@ using Phobos.Navigation;
 
 namespace Phobos.Components;
 
-public class GuardComponent(int id) : IComponent
+public class Guard(int id) : IComponent
 {
     public int Id
     {
@@ -14,6 +14,6 @@ public class GuardComponent(int id) : IComponent
     
     public override string ToString()
     {
-        return $"{nameof(GuardComponent)}({Location})";
+        return $"{nameof(Guard)}({Location})";
     }
 }

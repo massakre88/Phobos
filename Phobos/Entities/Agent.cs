@@ -1,17 +1,14 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using EFT;
-using Phobos.Actions;
 using Phobos.Components;
 using Phobos.Tasks;
 using Phobos.Tasks.Actions;
 
 namespace Phobos.Entities;
 
-public class Agent(BotOwner bot, int id) : IEquatable<Agent>
+public class Agent(BotOwner bot, int id) : Entity(id)
 {
-    public readonly int Id = id;
     public readonly int BotId = bot.Id;
     public readonly int SquadId = bot.BotsGroup.Id;
     public readonly BotOwner Bot = bot;
@@ -27,26 +24,6 @@ public class Agent(BotOwner bot, int id) : IEquatable<Agent>
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => IsLayerActive && IsPhobosActive;
-    }
-
-    public bool Equals(Agent other)
-    {
-        if (ReferenceEquals(other, null))
-            return false;
-
-        return Id == other.Id;
-    }
-    
-    public override bool Equals(object obj)
-    {
-        if (obj is null) return false;
-        if (ReferenceEquals(this, obj)) return true;
-        return obj.GetType() == GetType() && Equals((Agent)obj);
-    }
-
-    public override int GetHashCode()
-    {
-        return Id;
     }
 
     public override string ToString()
