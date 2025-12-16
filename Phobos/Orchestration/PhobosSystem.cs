@@ -3,16 +3,15 @@ using Phobos.Data;
 using Phobos.Diag;
 using Phobos.Entities;
 using Phobos.Navigation;
-using Phobos.Orchestration;
 
-namespace Phobos;
+namespace Phobos.Orchestration;
 
 public class PhobosSystem
 {
     public readonly Dataset Dataset;
     
-    public readonly ActionManager ActionManager;
-    public readonly SquadManager SquadManager;
+    public readonly ActionSystem ActionSystem;
+    public readonly SquadSystem SquadSystem;
     
     private readonly Telemetry _telemetry;
 
@@ -21,22 +20,18 @@ public class PhobosSystem
         var objectiveQueue = new LocationQueue();
         
         Dataset = new Dataset();
-        ActionManager = new ActionManager(Dataset);
-        SquadManager =  new SquadManager(objectiveQueue);
+        ActionSystem = new ActionSystem(Dataset);
+        SquadSystem =  new SquadSystem(objectiveQueue);
         
         _telemetry = telemetry;
     }
 
-    // TODO: Replace SystemOrchestrator as the main object.
-    // Add/remove agents
-    // API for registering components and actions, etc...
-
-    public virtual void RegisterComponents()
+    public void RegisterComponents()
     {
         // Register components with the Dataset
     }
 
-    public virtual void RegisterActions()
+    public void RegisterActions()
     {
         // Register actions
     }
@@ -45,7 +40,7 @@ public class PhobosSystem
     {
         var agent = Dataset.AddAgent(bot);
         DebugLog.Write($"Adding {agent} to Phobos");
-        SquadManager.AddAgent(agent);
+        SquadSystem.AddAgent(agent);
         _telemetry.AddAgent(agent);
         return agent;
     }
@@ -54,14 +49,14 @@ public class PhobosSystem
     {
         DebugLog.Write($"Removing {agent} from Phobos");
         Dataset.RemoveAgent(agent);
-        ActionManager.RemoveAgent(agent);
-        SquadManager.RemoveAgent(agent);
+        ActionSystem.RemoveAgent(agent);
+        SquadSystem.RemoveAgent(agent);
         _telemetry.RemoveAgent(agent);
     }
 
     public void Update()
     {
-        ActionManager.Update();
-        SquadManager.Update();
+        ActionSystem.Update();
+        SquadSystem.Update();
     }
 }

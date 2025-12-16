@@ -5,6 +5,7 @@ using EFT;
 using Phobos.Diag;
 using Phobos.ECS;
 using Phobos.Navigation;
+using Phobos.Orchestration;
 using SPT.Reflection.Patching;
 
 namespace Phobos.Patches;

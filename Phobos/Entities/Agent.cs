@@ -4,6 +4,8 @@ using System.Runtime.CompilerServices;
 using EFT;
 using Phobos.Actions;
 using Phobos.Components;
+using Phobos.Tasks;
+using Phobos.Tasks.Actions;
 
 namespace Phobos.Entities;
 
@@ -15,7 +17,7 @@ public class Agent(BotOwner bot, int id) : IEquatable<Agent>
     public readonly BotOwner Bot = bot;
 
     public readonly List<IComponent> Components = new(32);
-    public readonly List<UtilityScore> UtilityScores = new(16);
+    public readonly List<ActionScore> Actions = new(16);
     public BaseAction CurrentAction;
     
     public bool IsLayerActive = false;

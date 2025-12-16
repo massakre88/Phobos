@@ -2,12 +2,13 @@
 using System.Diagnostics;
 using Phobos.Actions;
 using Phobos.Entities;
+using Phobos.Tasks.Actions;
 
 namespace Phobos.Diag;
 
 public class AgentTelemetry
 {
-    public readonly List<UtilityScore> Scores = [];
+    public readonly List<ActionScore> Scores = [];
 }
 
 public class Telemetry
@@ -29,7 +30,7 @@ public class Telemetry
     {
         var telemetry = _agentTelemetry[agent];
         telemetry.Scores.Clear();
-        telemetry.Scores.AddRange(agent.UtilityScores);
+        telemetry.Scores.AddRange(agent.Actions);
     }
 
     [Conditional("DEBUG")]

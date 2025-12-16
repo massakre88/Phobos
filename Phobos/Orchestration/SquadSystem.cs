@@ -6,7 +6,7 @@ using Phobos.Navigation;
 
 namespace Phobos.Orchestration;
 
-public class SquadManager(LocationQueue locationQueue)
+public class SquadSystem(LocationQueue locationQueue)
 {
     private readonly TimePacing _pacing = new(1);
 

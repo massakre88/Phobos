@@ -1,4 +1,4 @@
-﻿namespace Phobos.Actions;
+﻿namespace Phobos.Tasks.Actions;
 
 public class BaseMoveAction
 {

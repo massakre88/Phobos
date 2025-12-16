@@ -3,11 +3,11 @@ using Comfort.Common;
 using Phobos.Data;
 using Phobos.Diag;
 using Phobos.Entities;
-using BaseAction = Phobos.Actions.BaseAction;
+using BaseAction = Phobos.Tasks.Actions.BaseAction;
 
 namespace Phobos.Orchestration;
 
-public class ActionManager(Dataset dataset)
+public class ActionSystem(Dataset dataset)
 {
     private readonly List<BaseAction> _actions = [];
     
@@ -57,9 +57,9 @@ public class ActionManager(Dataset dataset)
             var highestScore = -1f;
             BaseAction nextAction = null;
             
-            for (var j = 0; j < agent.UtilityScores.Count; j++)
+            for (var j = 0; j < agent.Actions.Count; j++)
             {
-                var entry = agent.UtilityScores[j];
+                var entry = agent.Actions[j];
                 var score = entry.Score + entry.Action.Hysteresis;
                 
                 if (score <= highestScore) continue;
@@ -70,7 +70,7 @@ public class ActionManager(Dataset dataset)
             
             Singleton<Telemetry>.Instance.UpdateScores(agent);
             
-            agent.UtilityScores.Clear();
+            agent.Actions.Clear();
 
             if (agent.CurrentAction == nextAction || nextAction == null) continue;
             

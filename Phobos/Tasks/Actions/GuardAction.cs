@@ -1,6 +1,8 @@
 ﻿using Phobos.Components;
 using Phobos.Data;
 using Phobos.Entities;
+using Phobos.Tasks;
+using Phobos.Tasks.Actions;
 
 namespace Phobos.Actions;
 
@@ -10,12 +12,16 @@ public class GuardAction(Dataset dataset) : BaseAction(hysteresis: 0.05f)
 
     public override void UpdateUtility()
     {
+        /*
+         * Objective proximity: 1 if near the objective, 0 otherwise
+         * Squad cohesion: the less squad cohesion there is, the higher utility this objective gets.
+         */
         var agents = dataset.Agents.Values;
         
         for (var i = 0; i < agents.Count; i++)
         {
             var agent = agents[i];
-            agent.UtilityScores.Add(new UtilityScore(0.5f, this));
+            agent.Actions.Add(new ActionScore(0.5f, this));
         }
     }
     

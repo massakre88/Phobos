@@ -4,6 +4,7 @@ using DrakiaXYZ.BigBrain.Brains;
 using EFT;
 using Phobos.Diag;
 using Phobos.Entities;
+using Phobos.Orchestration;
 using UnityEngine;
 
 namespace Phobos;
@@ -41,7 +42,7 @@ public class PhobosLayer : CustomLayer
         _phobosSystem = Singleton<PhobosSystem>.Instance;
         
         _agent = _phobosSystem.AddAgent(botOwner);
-        _squad = _phobosSystem.SquadManager[_agent.SquadId];
+        _squad = _phobosSystem.SquadSystem[_agent.SquadId];
 
         botOwner.Brain.BaseBrain.OnLayerChangedTo += OnLayerChanged;
         botOwner.GetPlayer.OnPlayerDead += OnDead;
