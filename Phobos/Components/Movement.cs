@@ -3,7 +3,7 @@ using EFT;
 using Phobos.Navigation;
 using UnityEngine;
 
-namespace Phobos.ECS.Components;
+namespace Phobos.Components;
 
 public enum MovementStatus
 {

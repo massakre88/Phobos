@@ -1,6 +1,6 @@
 ﻿using Phobos.Navigation;
 
-namespace Phobos.ECS.Components;
+namespace Phobos.Components;
 
 public enum ObjectiveStatus
 {
@@ -10,7 +10,7 @@ public enum ObjectiveStatus
     Failed
 }
 
-public class Objective
+public class Objective(int id) : Component(id)
 {
     public Location Location;
     public float DistanceSqr;

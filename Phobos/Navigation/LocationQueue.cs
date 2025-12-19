@@ -42,13 +42,17 @@ public class LocationQueue
         var collection = new List<Location>();
 
         DebugLog.Write("Collecting quests POIs");
+        
+        var idCounter = 0;
 
         foreach (var trigger in Object.FindObjectsOfType<TriggerWithId>())
         {
             if (trigger.transform == null)
                 continue;
 
-            AddValid(collection, LocationCategory.Quest, trigger.name, trigger.transform.position);
+            AddValid(idCounter, collection, LocationCategory.Quest, trigger.name, trigger.transform.position);
+
+            idCounter++;
         }
         
         foreach (var container in Object.FindObjectsOfType<LootableContainer>())
@@ -56,7 +60,9 @@ public class LocationQueue
             if (container.transform == null || !container.enabled || container.Template == null)
                 continue;
             
-            AddValid(collection, LocationCategory.ContainerLoot, container.name, container.transform.position);
+            AddValid(idCounter, collection, LocationCategory.ContainerLoot, container.name, container.transform.position);
+            
+            idCounter++;
         }
         
         DebugLog.Write($"Collected {collection.Count} points of interest");
@@ -64,11 +70,11 @@ public class LocationQueue
         return collection;
     }
 
-    private void AddValid(List<Location> collection, LocationCategory category, string name, Vector3 position)
+    private void AddValid(int idCounter, List<Location> collection, LocationCategory category, string name, Vector3 position)
     {
         if (NavMesh.SamplePosition(position, out var target, 5f, NavMesh.AllAreas))
         {
-            var objective = new Location(category, name, target.position);
+            var objective = new Location(idCounter, category, name, target.position);
             
             if (!_dupeCheck.Add(objective))
             {

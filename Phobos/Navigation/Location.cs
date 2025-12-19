@@ -11,17 +11,15 @@ public enum LocationCategory
     Exfil
 }
 
-public class Location(LocationCategory category, string name, Vector3 position) : IEquatable<Location>
+public class Location(int id, LocationCategory category, string name, Vector3 position) : IEquatable<Location>
 {
-    public readonly LocationCategory Category = category;
-    public readonly string Name = name;
+    private readonly int _id = id;
     public readonly Vector3 Position = position;
 
     public bool Equals(Location other)
     {
         if (other is null) return false;
-        if (ReferenceEquals(this, other)) return true;
-        return Category == other.Category && Name == other.Name && Position.Equals(other.Position);
+        return _id == other._id;
     }
 
     public override bool Equals(object obj)
@@ -33,11 +31,25 @@ public class Location(LocationCategory category, string name, Vector3 position) 
 
     public override int GetHashCode()
     {
-        return HashCode.Combine((int)Category, Name, Position);
+        return _id;
     }
+    
+    public static bool operator ==(Location lhs, Location rhs)
+    {
+        if (lhs is null)
+        {
+            return rhs is null;
+            // null == null = true.
+            // Only the left side is null.
+        }
+        // Equals handles the case of null on right side.
+        return lhs.Equals(rhs);
+    }
+
+    public static bool operator !=(Location lhs, Location rhs) => !(lhs == rhs);
     
     public override string ToString()
     {
-        return $"Location({Category}, {Name}, {Position})";
+        return $"Location({_id}, {category}, {name})";
     }
 }

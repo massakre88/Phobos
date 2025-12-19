@@ -1,7 +1,6 @@
 ﻿using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using EFT;
-using Phobos.Components;
 using Phobos.Tasks.Actions;
 
 namespace Phobos.Entities;
@@ -24,6 +23,6 @@ public class Agent(BotOwner bot, int id) : Entity(id)
 
     public override string ToString()
     {
-        return $"Actor(Id: {Id}, Name: {Bot.Profile.Nickname}, LayerActive: {IsLayerActive}, PhobosActive: {IsPhobosActive})";
+        return $"Agent(Id: {Id}, Name: {Bot.Profile.Nickname}, LayerActive: {IsLayerActive}, PhobosActive: {IsPhobosActive})";
     }
 }

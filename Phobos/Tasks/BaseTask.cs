@@ -7,7 +7,7 @@ public abstract class BaseTask<T>(float hysteresis)
 {
     public readonly float Hysteresis = hysteresis;
     
-    protected readonly List<T> ActiveAgents = new(16);
+    protected readonly List<T> ActiveEntities = new(16);
     private readonly HashSet<T> _agentSet = [];
 
     public abstract void UpdateUtility();
@@ -18,7 +18,7 @@ public abstract class BaseTask<T>(float hysteresis)
         if (!_agentSet.Add(entity))
             return;
 
-        ActiveAgents.Add(entity);
+        ActiveEntities.Add(entity);
     }
 
     public virtual void Deactivate(T entity)
@@ -26,6 +26,6 @@ public abstract class BaseTask<T>(float hysteresis)
         if (!_agentSet.Remove(entity))
             return;
 
-        ActiveAgents.SwapRemove(entity);
+        ActiveEntities.SwapRemove(entity);
     }
 }

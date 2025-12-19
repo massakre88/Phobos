@@ -1,5 +1,5 @@
-﻿using DrakiaXYZ.BigBrain.Brains;
-using EFT;
+﻿using EFT;
+using Phobos.Components;
 using Phobos.Components.Squad;
 using Phobos.Data;
 using Phobos.Diag;
@@ -41,7 +41,7 @@ public class PhobosSystem
     public void RegisterComponents()
     {
         // Register components with the datasets
-        
+        AgentData.RegisterComponent(new ComponentArray<Objective>(id => new Objective(id)));
         SquadData.RegisterComponent(new ComponentArray<SquadObjective>(id => new SquadObjective(id)));
     }
 
@@ -52,7 +52,7 @@ public class PhobosSystem
 
     public void RegisterStrategies()
     {
-        StrategySystem.RegisterStrategy(new GotoObjectiveStrategy(SquadData, LocationQueue, 0.25f));
+        StrategySystem.RegisterStrategy(new GotoObjectiveStrategy(SquadData, AgentData, LocationQueue, 0.25f));
     }
     
     public Agent AddAgent(BotOwner bot)

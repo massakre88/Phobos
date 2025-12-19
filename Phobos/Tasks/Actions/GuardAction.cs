@@ -25,9 +25,9 @@ public class GuardAction(AgentData dataset) : BaseAction(hysteresis: 0.05f)
     
     public override void Update()
     {
-        for (var i = 0; i < ActiveAgents.Count; i++)
+        for (var i = 0; i < ActiveEntities.Count; i++)
         {
-            var agent = ActiveAgents[i];
+            var agent = ActiveEntities[i];
             var guard = _guardComponents[agent.Id];
         }
     }

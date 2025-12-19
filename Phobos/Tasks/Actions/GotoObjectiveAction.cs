@@ -1,14 +1,39 @@
-﻿// using System.Runtime.CompilerServices;
-// using Phobos.Actions;
-// using Phobos.Diag;
-// using Phobos.ECS.Components;
-// using Phobos.ECS.Entities;
-// using Phobos.ECS.Systems;
-// using Phobos.Entities;
-// using UnityEngine;
-//
-// namespace Phobos.ECS.Actions;
-//
+﻿using Phobos.Components;
+using Phobos.Data;
+using Phobos.Diag;
+
+namespace Phobos.Tasks.Actions;
+
+public class GotoObjectiveAction(AgentData dataset, float hysteresis) : BaseAction(hysteresis)
+{
+    private readonly ComponentArray<Objective> _objectiveComponents = dataset.GetComponentArray<Objective>();
+    
+    public override void UpdateUtility()
+    {
+        var agents = dataset.Entities.Values;
+        for (var i = 0; i < agents.Count; i++)
+        {
+            var agent = agents[i];
+            var objective = _objectiveComponents[agent.Id];
+
+            // We only participate in the scoring if we have an objective
+            if (objective.Location != null)
+            {
+                agent.Actions.Add(new ActionScore(0.5f, this));
+            }
+        }
+    }
+
+    public override void Update()
+    {
+        for (var i = 0; i < ActiveEntities.Count; i++)
+        {
+            var agent = ActiveEntities[i];
+            var objective = _objectiveComponents[agent.Id];
+        }
+    }
+}
+
 // public class ObjectiveAction(MovementSystem movementSystem) : BaseAction(hysteresis: 0.25f)
 // {
 //     private const float ObjectiveReachedDistSqr = 10f * 10f;
