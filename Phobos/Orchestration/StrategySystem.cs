@@ -90,6 +90,11 @@ public class StrategySystem(SquadData dataset)
             var entry = squad.Strategies[j];
             var score = entry.Score;
 
+            if (entry.Strategy == squad.CurrentStrategy)
+            {
+                score += entry.Strategy.Hysteresis;
+            }
+
             if (score <= highestScore) continue;
 
             highestScore = score;

@@ -82,7 +82,12 @@ public class ActionSystem(AgentData dataset)
         for (var j = 0; j < agent.Actions.Count; j++)
         {
             var entry = agent.Actions[j];
-            var score = entry.Score + entry.Action.Hysteresis;
+            var score = entry.Score;
+
+            if (entry.Action == agent.CurrentAction)
+            {
+                score += entry.Action.Hysteresis;
+            }
 
             if (score <= highestScore) continue;
 
