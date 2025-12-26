@@ -1,6 +1,8 @@
-﻿using Phobos.Components;
+﻿using Comfort.Common;
+using Phobos.Components;
 using Phobos.Data;
 using Phobos.Entities;
+using Phobos.Systems;
 using UnityEngine;
 
 namespace Phobos.Tasks.Actions;
@@ -61,6 +63,8 @@ public class GotoObjectiveAction(AgentData dataset, float hysteresis) : Task<Age
 
     public override void Activate(Agent entity)
     {
+        MovementSystem.Reset(entity);
+        
         // TODO: Check if we are currently moving, and whether the move target is very close to our objective, if yes, leave it be. 
         base.Activate(entity);
     }
@@ -68,6 +72,7 @@ public class GotoObjectiveAction(AgentData dataset, float hysteresis) : Task<Age
     public override void Deactivate(Entity entity)
     {
         var objective = _objectiveComponents[entity.Id];
+        
         // TODO: Set the status to suspended
         base.Deactivate(entity);
     }

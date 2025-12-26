@@ -5,6 +5,7 @@ using EFT;
 using Phobos.Diag;
 using Phobos.Navigation;
 using Phobos.Orchestration;
+using Phobos.Systems;
 using SPT.Reflection.Patching;
 
 namespace Phobos.Patches;
@@ -28,14 +29,18 @@ public class PhobosInitPatch : ModulePatch
         // Services
         var navJobExecutor = new NavJobExecutor();
         
+        // Systems
+        var movementSystem = new MovementSystem(navJobExecutor);
+        
         // Core
-        var phobosManager = new PhobosManager(navJobExecutor);
+        var phobosManager = new PhobosManager(movementSystem);
         
         // Telemetry
         var telemetry = new Telemetry(phobosManager);
         
         // Registry
         Singleton<NavJobExecutor>.Create(navJobExecutor);
+        Singleton<MovementSystem>.Create(movementSystem);
         Singleton<PhobosManager>.Create(phobosManager);
         Singleton<Telemetry>.Create(telemetry);
     }
@@ -76,9 +81,10 @@ public class PhobosDisposePatch : ModulePatch
     public static void Postfix()
     {
         Plugin.Log.LogInfo("Disposing of static & long lived objects.");
-        Singleton<Telemetry>.Release(Singleton<Telemetry>.Instance);
-        Singleton<NavJobExecutor>.Release(Singleton<NavJobExecutor>.Instance);
         Singleton<PhobosManager>.Release(Singleton<PhobosManager>.Instance);
+        Singleton<MovementSystem>.Release(Singleton<MovementSystem>.Instance);
+        Singleton<NavJobExecutor>.Release(Singleton<NavJobExecutor>.Instance);
+        Singleton<Telemetry>.Release(Singleton<Telemetry>.Instance);
         Plugin.Log.LogInfo("Disposing complete.");
     }
 }

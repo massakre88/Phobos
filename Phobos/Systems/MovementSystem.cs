@@ -1,20 +1,18 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Runtime.CompilerServices;
-using EFT;
 using EFT.Interactive;
+using Phobos.Components;
 using Phobos.Diag;
-using Phobos.ECS.Components;
-using Phobos.ECS.Entities;
 using Phobos.Entities;
 using Phobos.Helpers;
 using Phobos.Navigation;
 using UnityEngine;
 using UnityEngine.AI;
 
-namespace Phobos.ECS.Systems;
+namespace Phobos.Systems;
 
-public class MovementSystem(NavJobExecutor navJobExecutor, AgentList liveAgents)
+public class MovementSystem(NavJobExecutor navJobExecutor)
 {
     private const int RetryLimit = 10;
 
@@ -23,7 +21,7 @@ public class MovementSystem(NavJobExecutor navJobExecutor, AgentList liveAgents)
 
     private readonly Queue<ValueTuple<Agent, NavJob>> _moveJobs = new(20);
 
-    public void Update()
+    public void Update(List<Agent> liveAgents)
     {
         if (_moveJobs.Count > 0)
         {
@@ -38,8 +36,8 @@ public class MovementSystem(NavJobExecutor navJobExecutor, AgentList liveAgents)
                     continue;
                 }
 
-                // Discard the move job if the agent is inactive (Phobos might be deactivated, or the bot died, etc...)
-                if (!agent.IsActive)
+                // Discard the move job if the agent is inactive or the latest job is not this job (Phobos might be deactivated, or the bot died, etc...)
+                if (!agent.IsActive || agent.Movement.CurrentJob != job)
                     continue;
 
                 StartMovement(agent, job);
@@ -53,10 +51,9 @@ public class MovementSystem(NavJobExecutor navJobExecutor, AgentList liveAgents)
             // Bail out if the agent is inactive
             if (!agent.IsActive)
             {
-                // Set status to suspended if we were active
-                if (agent.Movement.Status == MovementStatus.Active)
+                if (agent.Movement.Target != null)
                 {
-                    ResetTarget(agent.Movement, MovementStatus.Suspended);
+                    Reset(agent);
                 }
 
                 continue;
@@ -67,7 +64,15 @@ public class MovementSystem(NavJobExecutor navJobExecutor, AgentList liveAgents)
     }
     
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void MoveToDestination(Agent agent, Vector3 destination)
+    public static void Reset(Agent agent)
+    {
+        agent.Bot.Mover.Stop();
+        agent.Movement.Target = null;
+        agent.Movement.CurrentJob = null;
+    }
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void MoveToByPath(Agent agent, Vector3 destination)
     {
         ScheduleMoveJob(agent, destination);
         agent.Movement.Retry = 0;
@@ -86,22 +91,21 @@ public class MovementSystem(NavJobExecutor navJobExecutor, AgentList liveAgents)
         NavMesh.SamplePosition(agent.Bot.Position, out var origin, 5f, NavMesh.AllAreas);
         var job = navJobExecutor.Submit(origin.position, destination);
         _moveJobs.Enqueue((agent, job));
-        ResetTarget(agent.Movement, MovementStatus.Suspended);
+        Reset(agent);
+        agent.Movement.CurrentJob = job;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void StartMovement(Agent agent, NavJob job)
     {
+        agent.Movement.Target = new MovementTarget(job.Destination);
         if (job.Status == NavMeshPathStatus.PathInvalid)
         {
-            ResetTarget(agent.Movement, MovementStatus.Failed);
-            return;
+            
+            agent.Movement.Target = new MovementTarget(agent.Movement.Target?.Position ?? Vector3.zero, true);
         }
 
-        AssignTarget(agent.Movement, job);
-
         agent.Bot.Mover.GoToByWay(job.Path, 2);
-        agent.Bot.Mover.ActualPathFinder.SlowAtTheEnd = true;
 
         // Debug
         PathVis.Show(job.Path, thickness: 0.1f);
@@ -115,32 +119,37 @@ public class MovementSystem(NavJobExecutor navJobExecutor, AgentList liveAgents)
 
         var moveSpeedMult = 1f;
         
-        // Door handling
         if (HandleDoors(agent))
+        {
             moveSpeedMult = 0.25f;
+        }
         
-        // Movement control - must be always applied if Phobos is active.
-        // The sprint flag has to be enforced on every frame, as the BSG code can sometimes decide to change it randomly.
-        // We disable sprint for now as it looks jank and can get bots into weird spots sometimes.
-        bot.Mover.Sprint(false);
-        bot.SetTargetMoveSpeed(movement.Speed * moveSpeedMult);
+        if (movement.Sprint != bot.Mover.Sprinting)
+        {
+            bot.Mover.Sprint(movement.Sprint);
+        }
 
-        if (movement.Status != MovementStatus.Active)
-            return;
+        var targetSpeed = movement.Speed * moveSpeedMult;
+        if (Math.Abs(targetSpeed - bot.Mover.DestMoveSpeed) > 1e-2)
+        {
+            bot.SetTargetMoveSpeed(targetSpeed);
+        }
 
-        // Failsafe
         if (movement.Target == null)
         {
-            Plugin.Log.LogError($"Null target for {agent} even though the status is {movement.Status}");
-            movement.Status = MovementStatus.Suspended;
             return;
         }
 
-        movement.Target.DistanceSqr = (movement.Target.Position - bot.Position).sqrMagnitude;
-        
-        if (movement.Target.DistanceSqr < TargetReachedDistSqr)
+        var target = movement.Target.Value;
+
+        if (target.Failed)
         {
-            ResetTarget(movement, MovementStatus.Suspended);
+            return;
+        }
+        
+        if ((target.Position - bot.Position).sqrMagnitude < TargetReachedDistSqr)
+        {
+            Reset(agent);
             return;
         }
 
@@ -150,11 +159,11 @@ public class MovementSystem(NavJobExecutor navJobExecutor, AgentList liveAgents)
             // Try to find a new path.
             if (movement.Retry < RetryLimit)
             {
-                MoveRetry(agent, agent.Movement.Target.Position);
+                MoveRetry(agent, target.Position);
             }
             else
             {
-                ResetTarget(movement, MovementStatus.Failed);
+                movement.Target = new MovementTarget(target.Position, true);
             }
             
             return;
@@ -191,19 +200,6 @@ public class MovementSystem(NavJobExecutor navJobExecutor, AgentList liveAgents)
         }
 
         return foundDoors;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void AssignTarget(MovementComponent movement, NavJob job)
-    {
-        movement.Set(job);
-        movement.Status = MovementStatus.Active;        
-    }
-    
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void ResetTarget(MovementComponent movement, MovementStatus status)
-    {
-        movement.Status = status;
     }
 
     // private static bool ShouldSprint(Actor actor)
