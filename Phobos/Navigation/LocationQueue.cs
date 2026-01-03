@@ -11,7 +11,6 @@ namespace Phobos.Navigation;
 public class LocationQueue
 {
     private readonly Queue<Location> _queue;
-    private readonly HashSet<Location> _dupeCheck = [];
 
     public LocationQueue()
     {
@@ -37,7 +36,7 @@ public class LocationQueue
         }
     }
     
-    private List<Location> Collect()
+    private static List<Location> Collect()
     {
         var collection = new List<Location>();
 
@@ -70,17 +69,12 @@ public class LocationQueue
         return collection;
     }
 
-    private void AddValid(int idCounter, List<Location> collection, LocationCategory category, string name, Vector3 position)
+    private static void AddValid(int idCounter, List<Location> collection, LocationCategory category, string name, Vector3 position)
     {
         if (NavMesh.SamplePosition(position, out var target, 5f, NavMesh.AllAreas))
         {
             var objective = new Location(idCounter, category, name, target.position);
             
-            if (!_dupeCheck.Add(objective))
-            {
-                DebugLog.Write($"{objective} skipped as duplicate");
-                return;
-            }
             collection.Add(objective);
             DebugLog.Write($"{objective} added as location");
         }
