@@ -71,12 +71,6 @@ public class LocationQueue
 
     private static void AddValid(int idCounter, List<Location> collection, LocationCategory category, string name, Vector3 position)
     {
-        NavMesh.SamplePosition(position, out var h1, 5f, NavMesh.AllAreas);
-        NavMesh.SamplePosition(position + 100f * Vector3.up, out var h2, 5f, NavMesh.AllAreas);
-        
-        DebugLog.Write($"Baseline hit: {h1.hit} pos: {h1.position}");
-        DebugLog.Write($"Offset hit: {h2.hit} pos: {h2.position}");
-        
         if (NavMesh.SamplePosition(position, out var target, 5f, NavMesh.AllAreas))
         {
             var objective = new Location(idCounter, category, name, target.position);

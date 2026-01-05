@@ -1,4 +1,6 @@
-﻿using System.Collections.Generic;
+﻿using System;
+using System.Collections.Generic;
+using System.Runtime.CompilerServices;
 using EFT.Interactive;
 using Phobos.Diag;
 using UnityEngine;
@@ -8,145 +10,201 @@ using Random = UnityEngine.Random;
 
 namespace Phobos.Navigation;
 
-public struct Cell(Queue<Location> locations, int congestion)
+public struct Cell()
 {
-    public readonly Queue<Location> Locations = locations;
-    public int Congestion = congestion;
+    public readonly List<Location> Locations = [];
+    public int Congestion = 0;
 }
 
 public class LocationPool
 {
-    private readonly List<Cell> _candidates = new(16);
-    private readonly Cell[,] _cells;
+    // We need at least 3 cells in both dimensions
+    private const int MinCells = 3;
+    private const float MaxDiameter = 50f;
+    private const float MaxRadius = MaxDiameter / 2f;
 
-    private readonly Vector2 _boundsMin;
-    private readonly Vector2Int _gridDimensions;
-    private readonly Vector2 _cellSize;
+    private readonly Cell[,] _cells;
+    private readonly float _cellSize;
+    private readonly Vector2Int _gridSize;
+    private readonly Vector2 _worldOffset; // Bottom-left corner in world space
+
+    private static int _idCounter;
+    
+    // Axial coordinate offsets for the 6 neighbors of a hex cell
+    // Using flat-top hex orientation
+    private static readonly Vector2Int[] NeighborOffsets =
+    [
+        new Vector2Int(+1, 0), new Vector2Int(+1, -1),
+        new Vector2Int(0, -1), new Vector2Int(-1, 0),
+        new Vector2Int(-1, +1), new Vector2Int(0, +1)
+    ];
 
     public LocationPool()
     {
         var locations = Collect();
         Shuffle(locations);
 
-        // Calculate 2D bounds (ignore Y axis)
-        var minX = float.MaxValue;
-        var minZ = float.MaxValue;
-        var maxX = float.MinValue;
-        var maxZ = float.MinValue;
+        // Calculate bounds from positions
+        var worldMin = new Vector3(float.MaxValue, float.MaxValue, float.MaxValue);
+        var worldMax = new Vector3(float.MinValue, float.MinValue, float.MinValue);
 
         for (var i = 0; i < locations.Count; i++)
         {
             var pos = locations[i].Position;
-
-            if (pos.x < minX) minX = pos.x;
-            if (pos.x > maxX) maxX = pos.x;
-            if (pos.z < minZ) minZ = pos.z;
-            if (pos.z > maxZ) maxZ = pos.z;
+            worldMin.x = Mathf.Min(worldMin.x, pos.x);
+            worldMin.z = Mathf.Min(worldMin.z, pos.z);
+            worldMax.x = Mathf.Max(worldMax.x, pos.x);
+            worldMax.z = Mathf.Max(worldMax.z, pos.z);
         }
 
-        _boundsMin = new Vector2(minX, minZ);
-        var boundsSize = new Vector2(maxX - minX, maxZ - minZ);
+        // Add padding to avoid edge cases with positions exactly on boundaries
+        const float padding = 10f;
+        worldMin.x -= padding;
+        worldMin.z -= padding;
+        worldMax.x += padding;
+        worldMax.z += padding;
 
-        // Calculate grid dimensions based on map aspect ratio
-        // ~15 objectives per cell
-        var totalCells = Mathf.Max(25, locations.Count / 15);
-        var aspectRatio = boundsSize.x / boundsSize.y;
+        _worldOffset = new Vector2(worldMin.x, worldMin.z);
 
-        // Distribute cells proportionally to aspect ratio
-        var cellsY = Mathf.RoundToInt(Mathf.Sqrt(totalCells) / aspectRatio);
-        var cellsX = Mathf.RoundToInt(cellsY * aspectRatio);
+        var worldWidth = worldMax.x - worldMin.x;
+        var worldHeight = worldMax.z - worldMin.z;
 
-        // Ensure minimum dimensions to prevent degenerate grids
-        cellsX = Mathf.Max(3, cellsX);
-        cellsY = Mathf.Max(3, cellsY);
+        // Calculate cell size based on constraints
+        // For hex grid: horizontal spacing = 3/2 * radius, vertical = sqrt(3) * radius
+        // Calculate maximum radius that gives us at least minCells cells
+        var maxRadiusFromWidth = worldWidth / (1.5f * MinCells);
+        var maxRadiusFromHeight = worldHeight / (Mathf.Sqrt(3) * MinCells);
 
-        _gridDimensions = new Vector2Int(cellsX, cellsY);
-        _cellSize = new Vector2(boundsSize.x / _gridDimensions.x, boundsSize.y / _gridDimensions.y);
-        _cells = new Cell[_gridDimensions.x, _gridDimensions.y];
+        // Take the minimum of the three constraints
+        _cellSize = Mathf.Min(MaxRadius, Mathf.Min(maxRadiusFromWidth, maxRadiusFromHeight));
 
-        // Populate grid with objective indices
+        // Calculate resulting grid dimensions
+        var cols = Mathf.CeilToInt(worldWidth / (1.5f * _cellSize)) + 1;
+        var rows = Mathf.CeilToInt(worldHeight / (Mathf.Sqrt(3) * _cellSize)) + 1;
+
+        _gridSize = new Vector2Int(cols, rows);
+        _cells = new Cell[cols, rows];
+
+        // Initialize all cells
+        for (var x = 0; x < cols; x++)
+        {
+            for (var y = 0; y < rows; y++)
+            {
+                _cells[x, y] = new Cell();
+            }
+        }
+
         for (var i = 0; i < locations.Count; i++)
         {
             var location = locations[i];
-            var coords = WorldToGrid(location.Position);
-            var cell = _cells[coords.x, coords.y];
-
-            cell.Locations.Enqueue(location);
+            var coords = WorldToCell(location.Position);
+            _cells[coords.x, coords.y].Locations.Add(location);
         }
-        
-        DebugLog.Write($"Location pool built with grid size {_gridDimensions}");
-    }
-
-    public Location Request()
-    {
-        // TODO: This needs to be done differently.
-        //       We need to maintain a SortedSet of cells with available locations. The set is sorted by congestion.
-        //       When we retrieve a location, we check if the cell is now empty, if yes, we move it to the EmptyCells dictionary.
-        //       When a location is returned, we'll check if it was empty before, and if yes, we'll remove it from the EmptyCells and add back to the available locations  set.
-        //       This ensures that we'll maximize dispersion but also fully utilize all locations we can.
-        
-        // Find cell(s) with minimum congestion
-        _candidates.Clear();
-        var minCongestion = int.MaxValue;
 
         for (var x = 0; x < _cells.GetLength(0); x++)
         {
             for (var y = 0; y < _cells.GetLength(1); y++)
             {
-                var cell = _cells[x, y];
+                ref var cell = ref _cells[x, y];
+                if (cell.Locations.Count > 0)
+                    continue;
                 
-                if (cell.Congestion < minCongestion)
-                {
-                    minCongestion = cell.Congestion;
-                    _candidates.Clear();
-                    _candidates.Add(cell);
-                }
-                else if (cell.Congestion == minCongestion)
-                {
-                    _candidates.Add(cell);
-                }
+                var worldPos = CellToWorld(new Vector2Int(x, y));
+                var inscribedRadius = _cellSize * Mathf.Sqrt(3) / 2f;
+
+                if (!NavMesh.SamplePosition(worldPos, out var hit, inscribedRadius, NavMesh.AllAreas)) continue;
+                
+                cell.Locations.Add(new Location(_idCounter, LocationCategory.Synthetic, $"Synthetic({_idCounter})", hit.position));
+                _idCounter++;
             }
         }
 
-        // ReSharper disable once LoopCanBeConvertedToQuery
-        for (var i = 0; i < _candidates.Count; i++)
-        {
-            var candidate = _candidates[i];
+        DebugLog.Write($"Location grid cell size: {_gridSize}, radius: {_cellSize:F1}, locations: {locations.Count}");
+        DebugLog.Write($"Location grid world bounds: ({worldMin.x:F0},{worldMin.z:F0})->({worldMax.x:F0},{worldMax.z:F0})");
+        DebugLog.Write($"Location grid world size: {worldWidth:F0}x{worldHeight:F0}");
+    }
 
-            if (candidate.Locations.Count <= 0) continue;
+    public Location RequestNear(Vector3 worldPos, Vector2Int previous)
+    {
+        var requestCoords = WorldToCell(worldPos);
+
+        for (var i = 0; i < NeighborOffsets.Length; i++)
+        {
+            var coords = requestCoords + NeighborOffsets[i];
             
-            var location = candidate.Locations.Dequeue();
-            candidate.Congestion--;
-            var coords = WorldToGrid(location.Position);
-            _cells[coords.x, coords.y] = candidate;
+            if (!IsValidCell(coords))
+                continue;
         }
         
+        
+
+        return RequestWide(worldPos);
+    }
+
+    public Location RequestWide(Vector3 worldPos)
+    {
         return null;
     }
 
     public void Return(Location location)
     {
-        var coords = WorldToGrid(location.Position);
+        var coords = WorldToCell(location.Position);
         ref var cell = ref _cells[coords.x, coords.y];
-        cell.Locations.Enqueue(location);
         cell.Congestion--;
 
         if (cell.Congestion >= 0) return;
-        
+
         cell.Congestion = 0;
         DebugLog.Write($"Returning {location} to the pool resulted in negative congestion");
     }
 
-    private Vector2Int WorldToGrid(Vector3 worldPos)
+    public Vector3 CellToWorld(Vector2Int cell)
     {
-        var x = Mathf.FloorToInt((worldPos.x - _boundsMin.x) / _cellSize.x);
-        var y = Mathf.FloorToInt((worldPos.z - _boundsMin.y) / _cellSize.y);
+        var x = _cellSize * (3f / 2f * cell.x) + _worldOffset.x;
+        var z = _cellSize * (Mathf.Sqrt(3) / 2f * cell.x + Mathf.Sqrt(3) * cell.y) + _worldOffset.y;
 
-        // Clamp to grid bounds
-        x = Mathf.Clamp(x, 0, _gridDimensions.x - 1);
-        y = Mathf.Clamp(y, 0, _gridDimensions.y - 1);
+        return new Vector3(x, 0, z);
+    }
 
-        return new Vector2Int(x, y);
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public bool IsValidCell(Vector2Int cell)
+    {
+        return cell.x >= 0 && cell.x < _gridSize.x && cell.y >= 0 && cell.y < _gridSize.y;
+    }
+
+    private Vector2Int WorldToCell(Vector3 worldPos)
+    {
+        var x = worldPos.x - _worldOffset.x;
+        var z = worldPos.z - _worldOffset.y;
+
+        var q = 2f / 3f * x / _cellSize;
+        var r = (-1f / 3f * x + Mathf.Sqrt(3) / 3f * z) / _cellSize;
+
+        return AxialRound(q, r);
+    }
+
+    private static Vector2Int AxialRound(float q, float r)
+    {
+        var s = -q - r;
+
+        var rq = Math.Round(q);
+        var rr = Math.Round(r);
+        var rs = Math.Round(s);
+
+        var qDiff = Math.Abs(rq - q);
+        var rDiff = Math.Abs(rr - r);
+        var sDiff = Math.Abs(rs - s);
+
+        if (qDiff > rDiff && qDiff > sDiff)
+        {
+            rq = -rr - rs;
+        }
+        else if (rDiff > sDiff)
+        {
+            rr = -rq - rs;
+        }
+
+        return new Vector2Int((int)rq, (int)rr);
     }
 
     private static void Shuffle(List<Location> objectives)
@@ -165,16 +223,16 @@ public class LocationPool
 
         DebugLog.Write("Collecting quests POIs");
 
-        var idCounter = 0;
+        _idCounter = 0;
 
         foreach (var trigger in Object.FindObjectsOfType<TriggerWithId>())
         {
             if (trigger.transform == null)
                 continue;
 
-            AddValid(idCounter, collection, LocationCategory.Quest, trigger.name, trigger.transform.position);
+            AddValid(_idCounter, collection, LocationCategory.Quest, trigger.name, trigger.transform.position);
 
-            idCounter++;
+            _idCounter++;
         }
 
         foreach (var container in Object.FindObjectsOfType<LootableContainer>())
@@ -182,9 +240,9 @@ public class LocationPool
             if (container.transform == null || !container.enabled || container.Template == null)
                 continue;
 
-            AddValid(idCounter, collection, LocationCategory.ContainerLoot, container.name, container.transform.position);
+            AddValid(_idCounter, collection, LocationCategory.ContainerLoot, container.name, container.transform.position);
 
-            idCounter++;
+            _idCounter++;
         }
 
         DebugLog.Write($"Collected {collection.Count} points of interest");

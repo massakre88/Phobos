@@ -8,6 +8,7 @@ public enum LocationCategory
     ContainerLoot,
     LooseLoot,
     Quest,
+    Synthetic,
     Exfil
 }
 
