@@ -2,7 +2,6 @@
 using Phobos.Entities;
 using Phobos.Helpers;
 using UnityEngine;
-using UnityEngine.AI;
 
 namespace Phobos.Systems;
 

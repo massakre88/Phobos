@@ -71,16 +71,10 @@ public class LocationQueue
 
     private static void AddValid(int idCounter, List<Location> collection, LocationCategory category, string name, Vector3 position)
     {
-        if (NavMesh.SamplePosition(position, out var target, 5f, NavMesh.AllAreas))
-        {
-            var objective = new Location(idCounter, category, name, target.position);
+        if (!NavMesh.SamplePosition(position, out var target, 5f, NavMesh.AllAreas)) return;
+        
+        var objective = new Location(idCounter, category, name, target.position);
             
-            collection.Add(objective);
-            DebugLog.Write($"{objective} added as location");
-        }
-        else
-        {
-            DebugLog.Write($"Objective({category}, {name}, {position}) too far from navmesh");
-        }
+        collection.Add(objective);
     }
 }

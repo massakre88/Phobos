@@ -4,9 +4,7 @@ using Comfort.Common;
 using EFT;
 using HarmonyLib;
 using Phobos.Diag;
-using Phobos.Navigation;
 using Phobos.Orchestration;
-using Phobos.Systems;
 using SPT.Reflection.Patching;
 
 namespace Phobos.Patches;
@@ -24,24 +22,16 @@ public class PhobosInitPatch : ModulePatch
         // For some odd reason the constructor appears to be called twice. Prevent running the second time.
         if (Singleton<PhobosManager>.Instantiated)
             return;
-        
+
         DebugLog.Write("Initializing Phobos");
-        
-        // Services
-        var navJobExecutor = new NavJobExecutor();
-        
-        // Systems
-        var movementSystem = new MovementSystem(navJobExecutor);
-        
+
         // Core
-        var phobosManager = new PhobosManager(movementSystem);
-        
+        var phobosManager = new PhobosManager();
+
         // Telemetry
         var telemetry = new Telemetry(phobosManager);
-        
+
         // Registry
-        Singleton<NavJobExecutor>.Create(navJobExecutor);
-        Singleton<MovementSystem>.Create(movementSystem);
         Singleton<PhobosManager>.Create(phobosManager);
         Singleton<Telemetry>.Create(telemetry);
     }
@@ -64,9 +54,8 @@ public class PhobosFrameUpdatePatch : ModulePatch
         // Bool_0 seems to be an IsActive flag
         if (!__instance.Bool_0)
             return;
-        
+
         Singleton<PhobosManager>.Instance.Update();
-        Singleton<NavJobExecutor>.Instance.Update();
     }
 }
 
@@ -82,8 +71,6 @@ public class PhobosDisposePatch : ModulePatch
     {
         Plugin.Log.LogInfo("Disposing of static & long lived objects.");
         Singleton<PhobosManager>.Release(Singleton<PhobosManager>.Instance);
-        Singleton<MovementSystem>.Release(Singleton<MovementSystem>.Instance);
-        Singleton<NavJobExecutor>.Release(Singleton<NavJobExecutor>.Instance);
         Singleton<Telemetry>.Release(Singleton<Telemetry>.Instance);
         Plugin.Log.LogInfo("Disposing complete.");
     }
@@ -123,7 +110,6 @@ public class TestBotMoverManualFixedUpdatePatch : ModulePatch
         return false;
     }
 }
-
 
 // Stolen from Solarint's SAIN
 // Disable specific functions in Manual Update that might be causing erratic movement in sain bots.

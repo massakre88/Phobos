@@ -1,5 +1,4 @@
-﻿using Comfort.Common;
-using Phobos.Components;
+﻿using Phobos.Components;
 using Phobos.Data;
 using Phobos.Entities;
 using Phobos.Systems;
@@ -8,7 +7,7 @@ using UnityEngine.AI;
 
 namespace Phobos.Tasks.Actions;
 
-public class GotoObjectiveAction(AgentData dataset, float hysteresis) : Task<Agent>(hysteresis)
+public class GotoObjectiveAction(AgentData dataset, MovementSystem movementSystem, float hysteresis) : Task<Agent>(hysteresis)
 {
     private const float UtilityBase = 0.5f;
     private const float UtilityBoost = 0.15f;
@@ -56,12 +55,13 @@ public class GotoObjectiveAction(AgentData dataset, float hysteresis) : Task<Age
             if (objective.Status == ObjectiveStatus.Suspended)
             {
                 objective.Status = ObjectiveStatus.Active;
-                Singleton<MovementSystem>.Instance.MoveToByPath(agent, objective.Location.Position);
+                movementSystem.MoveToByPath(agent, objective.Location.Position);
                 return;
             }
-            
+
             // Only fail the objective if the movement fails outside the objective zone.  
-            if (agent.Movement.Status == NavMeshPathStatus.PathInvalid && (objective.Location.Position - agent.Bot.Position).sqrMagnitude > ObjectiveEpsDistSqr)
+            if (agent.Movement.Status == NavMeshPathStatus.PathInvalid &&
+                (objective.Location.Position - agent.Bot.Position).sqrMagnitude > ObjectiveEpsDistSqr)
             {
                 objective.Status = ObjectiveStatus.Failed;
             }
@@ -81,7 +81,7 @@ public class GotoObjectiveAction(AgentData dataset, float hysteresis) : Task<Age
         }
 
         objective.Status = ObjectiveStatus.Active;
-        
+
         // Check if we are already moving to our target
         if (entity.Movement.IsValid)
         {
@@ -90,7 +90,7 @@ public class GotoObjectiveAction(AgentData dataset, float hysteresis) : Task<Age
                 return;
             }
         }
-        
-        Singleton<MovementSystem>.Instance.MoveToByPath(entity, objective.Location.Position);
+
+        movementSystem.MoveToByPath(entity, objective.Location.Position);
     }
 }

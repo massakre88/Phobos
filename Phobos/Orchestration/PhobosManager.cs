@@ -37,27 +37,33 @@ public class PhobosManager
     public readonly AgentData AgentData;
     public readonly SquadData SquadData;
 
+    public readonly NavJobExecutor NavJobExecutor;
+    
     public readonly MovementSystem MovementSystem;
     public readonly LookSystem LookSystem;
+    public readonly LocationSystem LocationSystem;
 
     public readonly ActionManager ActionManager;
     public readonly StrategyManager StrategyManager;
 
     private readonly List<Agent> _liveAgents;
 
-    public PhobosManager(MovementSystem movementSystem)
+    public PhobosManager()
     {
         AgentData = new AgentData();
         SquadData = new SquadData();
 
         _liveAgents = AgentData.Entities.Values;
 
+        NavJobExecutor = new NavJobExecutor();
+        
+        MovementSystem = new MovementSystem(NavJobExecutor);
+        LookSystem = new LookSystem();
+        LocationSystem = new LocationSystem();
+        
         RegisterComponents();
         var actions = RegisterActions();
         var strategies = RegisterStrategies();
-
-        MovementSystem = movementSystem;
-        LookSystem = new LookSystem();
 
         ActionManager = new ActionManager(AgentData, actions);
         StrategyManager = new StrategyManager(SquadData, strategies);
@@ -76,7 +82,6 @@ public class PhobosManager
     {
         AgentData.RemoveEntity(agent);
         SquadRegistry.RemoveAgent(agent);
-
         ActionManager.RemoveEntity(agent);
     }
 
@@ -86,6 +91,8 @@ public class PhobosManager
         ActionManager.Update();
         MovementSystem.Update(_liveAgents);
         LookSystem.Update(_liveAgents);
+        
+        NavJobExecutor.Update();
     }
 
     private void RegisterComponents()
@@ -110,7 +117,7 @@ public class PhobosManager
     {
         var actions = new DefinitionRegistry<Task<Agent>>();
 
-        actions.Add(new GotoObjectiveAction(AgentData, 0.25f));
+        actions.Add(new GotoObjectiveAction(AgentData, MovementSystem,0.25f));
 
         OnRegisterActions?.Invoke(actions);
 
@@ -121,7 +128,7 @@ public class PhobosManager
     private Task<Squad>[] RegisterStrategies()
     {
         var strategies = new DefinitionRegistry<Task<Squad>>();
-
+        
         strategies.Add(new GotoObjectiveStrategy(SquadData, new LocationQueue(), 0.25f));
 
         OnRegisterStrategies?.Invoke(strategies);

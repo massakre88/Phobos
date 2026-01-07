@@ -3,26 +3,28 @@ using System.Collections.Generic;
 using System.Runtime.CompilerServices;
 using EFT.Interactive;
 using Phobos.Diag;
+using Phobos.Navigation;
 using UnityEngine;
 using UnityEngine.AI;
+using Location = Phobos.Navigation.Location;
 using Object = UnityEngine.Object;
 using Random = UnityEngine.Random;
 
-namespace Phobos.Navigation;
+namespace Phobos.Systems;
 
 public struct Cell()
 {
     public readonly List<Location> Locations = [];
     public int Congestion = 0;
 
-    public bool IsValid
+    public bool HasLocations
     {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => Locations.Count > 0;
     }
 }
 
-public class LocationGrid
+public class LocationSystem
 {
     private const int MinCells = 3;
     private const float MaxCellSize = 50f;
@@ -32,9 +34,11 @@ public class LocationGrid
     private readonly Vector2Int _gridSize;
     private readonly Vector2 _worldOffset; // Bottom-left corner in world space
 
+    private readonly List<Vector2Int> _cellBuffer;
+
     private static int _idCounter;
 
-    public LocationGrid()
+    public LocationSystem()
     {
         var locations = Collect();
         Shuffle(locations);
@@ -122,13 +126,16 @@ public class LocationGrid
 
                 if (NavMesh.SamplePosition(worldPos, out var hit, searchRadius, NavMesh.AllAreas))
                 {
-                    var centerPos = hit.position;
-
-                    if (WorldToCell(centerPos) == cellCoords)
+                    if (WorldToCell(hit.position) == cellCoords)
                     {
-                        DebugLog.Write($"Cell {cellCoords}: found center sample on navmesh at {centerPos}");
-                        cell.Locations.Add(BuildSyntheticLocation(centerPos));
-                        continue;
+                        if (CheckPathing(cellCoords, hit.position))
+                        {
+                            DebugLog.Write($"Cell {cellCoords}: found center sample on navmesh at {worldPos} -> {hit.position}");
+                            cell.Locations.Add(BuildSyntheticLocation(hit.position));
+                            continue;
+                        }
+                        
+                        DebugLog.Write($"Cell {cellCoords}: non-traversable center sample");
                     }
                 }
 
@@ -140,7 +147,13 @@ public class LocationGrid
     public Location RequestNear(Vector3 worldPos, Location previous)
     {
         var requestCoords = WorldToCell(worldPos);
+        var previousCoords = WorldToCell(previous.Position);
         
+        _cellBuffer.Clear();
+
+        var congestionRms = 0f;
+        
+        // First pass: determine the average congestion in the surrounding cells
         for (var dx = -1; dx <= 1; dx++)
         {
             for (var dy = -1; dy <= 1; dy++)
@@ -151,13 +164,55 @@ public class LocationGrid
                 
                 if (!IsValidCell(coords))
                     continue;
+                
+                ref var cell = ref _cells[coords.x, coords.y];
+                
+                if (!cell.HasLocations)
+                    continue;
+                
+                _cellBuffer.Add(coords);
+                congestionRms += cell.Congestion * cell.Congestion;
             }
         }
 
-        var currentCell = _cells[requestCoords.x, requestCoords.y];
+        if (_cellBuffer.Count == 0)
+        {
+            // We can't go to any neighboring cell for some reason, grab something from the current cell. 
+            var currentCell = _cells[requestCoords.x, requestCoords.y];
+            return currentCell.Locations.Count > 0 ? currentCell.Locations[Random.Range(0, currentCell.Locations.Count)] : null;
+        }
+        
+        congestionRms = Mathf.Sqrt(congestionRms / _cellBuffer.Count);
 
-        // We can't go to any neighboring cell for some reason, grab something from the current cell. 
-        return currentCell.Locations.Count > 0 ? currentCell.Locations[Random.Range(0, currentCell.Locations.Count)] : null;
+        if (congestionRms < 1e-2)
+        {
+            congestionRms = 1f;
+        }
+        
+        // Second pass: normalize the congestions by the average, subtract one and multiply by -1 to get the congestion penalty
+        // The previously visited cell gets -1 weight and it's neighbors get -0.5
+        // Add a random weight between 0 and 1
+        for (var i = 0; i < _cellBuffer.Count; i++)
+        {
+            var coords =  _cellBuffer[i];
+            ref var cell =  ref _cells[coords.x, coords.y];
+            
+            // The congestion score is +ve for cells with below average congestion and -ve for above average
+            // We use base 2 log so that congestion of 2x or 0.5x the average has a score of +-1
+            var congestionScore = -1 * Mathf.Log(cell.Congestion / congestionRms, 2);
+            
+            // The momentum score penalizes the previously visited cell and it's neighbors and thus imparts a momentum on the next pick
+            // We use the Chebyshev distance to avoid diagonals getting extra penalties
+            var chebyshev = Mathf.Max(Mathf.Abs(coords.x - previousCoords.x), Mathf.Abs(coords.y - previousCoords.y));
+            var momentumScore = -1 * (1f - Mathf.InverseLerp(0f, 3f, chebyshev));
+            
+            // Add some randomization
+            var randomization = Random.Range(0f, 1f);
+            
+            var score = congestionScore + momentumScore + randomization;
+        }
+
+        return null;
     }
 
     public void Return(Location location)
@@ -172,10 +227,62 @@ public class LocationGrid
         DebugLog.Write($"Returning {location} to the pool resulted in negative congestion");
     }
 
+    private bool CheckPathing(Vector2Int center, Vector3 candidatePos)
+    {
+        var visited = new HashSet<Vector2Int>();
+        var queue = new Queue<Vector2Int>();
+    
+        queue.Enqueue(center);
+        visited.Add(center);
+
+        var tempPath = new NavMeshPath();
+        
+        while (queue.Count > 0)
+        {
+            var current = queue.Dequeue();
+
+            if (!IsValidCell(current))
+                continue;
+            
+            var currentCell =  _cells[current.x, current.y];
+            
+            // Check each location in this cell against the candidate location for traversability
+            // ReSharper disable once LoopCanBeConvertedToQuery
+            for (var i = 0; i < currentCell.Locations.Count; i++)
+            {
+                var location = currentCell.Locations[i];
+
+                if (!NavMesh.CalculatePath(candidatePos, location.Position, NavMesh.AllAreas, tempPath)) continue;
+                
+                // Only accept paths that actually arrive at the destination
+                if (tempPath.corners.Length > 0 && (tempPath.corners[^1] - location.Position).sqrMagnitude <= 1)
+                    return true;
+            }
+        
+            for (var dx = -1; dx <= 1; dx++)
+            {
+                for (var dy = -1; dy <= 1; dy++)
+                {
+                    if (dx == 0 && dy == 0) continue;
+                    
+                    var coords = new Vector2Int(current.x + dx, current.y + dy);
+                    
+                    // Returns false if already visited
+                    if (visited.Add(coords))
+                    {
+                        queue.Enqueue(coords);
+                    }
+                }
+            }
+        }
+        
+        return false;
+    }
+    
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private bool IsValidCell(Vector2Int cell)
     {
-        return cell.x >= 0 && cell.x < _gridSize.x && cell.y >= 0 && cell.y < _gridSize.y && _cells[cell.x, cell.y].IsValid;
+        return cell.x >= 0 && cell.x < _gridSize.x && cell.y >= 0 && cell.y < _gridSize.y;
     }
 
 
