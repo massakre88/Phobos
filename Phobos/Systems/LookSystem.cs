@@ -34,7 +34,7 @@ public class LookSystem
             {
                 var fwdPoint = PathHelper.CalcForwardPoint(
                     movement.Path, bot.Position, movement.CurrentCorner, MoveLookAheadDistSqr
-                ) + 1.5f * Vector3.up;
+                ) + 1.25f * Vector3.up;
                 bot.Steering.LookToPoint(fwdPoint, 360f);
             }
             else

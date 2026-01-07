@@ -12,8 +12,9 @@ using Random = UnityEngine.Random;
 
 namespace Phobos.Systems;
 
-public struct Cell()
+public struct Cell(int id)
 {
+    public readonly int Id = id;
     public readonly List<Location> Locations = [];
     public int Congestion = 0;
 
@@ -34,7 +35,9 @@ public class LocationSystem
     private readonly Vector2Int _gridSize;
     private readonly Vector2 _worldOffset; // Bottom-left corner in world space
 
-    private readonly List<Vector2Int> _cellBuffer;
+    private readonly List<Vector2Int> _tempCoordsBuffer = [];
+    
+    private readonly SortedSet<Vector2Int> _coordsByCongestion;
 
     private static int _idCounter;
 
@@ -88,15 +91,27 @@ public class LocationSystem
         DebugLog.Write($"Location grid world bounds: [{worldMin.x:F0},{worldMin.z:F0}] -> [{worldMax.x:F0},{worldMax.z:F0}]");
         DebugLog.Write($"Location grid world size: {worldWidth:F0}x{worldHeight:F0} search radius: {searchRadius}");
 
-        // Initialize all cells
+        // Cell initialization. We want to randomize the ids assigned to cells, so that their id based ordering is random.
+        // The ids will be later used by the sorted set to tie-break, and we don't want deterministic ordering.
         for (var x = 0; x < cols; x++)
         {
             for (var y = 0; y < rows; y++)
             {
-                _cells[x, y] = new Cell();
+                _tempCoordsBuffer.Add(new Vector2Int(x, y));
             }
         }
 
+        Shuffle(_tempCoordsBuffer);
+        
+        for (var i = 0; i < _tempCoordsBuffer.Count; i++)
+        {
+            var coords =  _tempCoordsBuffer[i];
+            _cells[coords.x, coords.y] = new Cell(i);
+        }
+        
+        _tempCoordsBuffer.Clear();
+
+        // Add the BSG locations
         for (var i = 0; i < locations.Count; i++)
         {
             var location = locations[i];
@@ -114,12 +129,12 @@ public class LocationSystem
                 ref var cell = ref _cells[cellCoords.x, cellCoords.y];
 
                 // If we already have BSG issued locations, bail out
-                if (cell.Locations.Count > 0)
+                if (cell.HasLocations)
                 {
                     continue;
                 }
 
-                DebugLog.Write($"Cell at [{x}, {y}] has no BSG locations, attempting to create synthetic at cell center");
+                DebugLog.Write($"Cell at [{x}, {y}] has no BSG locations, attempting to create a synthetic cell center");
 
                 // Try to find a navmesh position as close to the cell center as possible.
                 var worldPos = CellToWorld(cellCoords);
@@ -142,14 +157,37 @@ public class LocationSystem
                 DebugLog.Write($"Cell {cellCoords}: no navmesh positions found");
             }
         }
+
+        _coordsByCongestion = new SortedSet<Vector2Int>(new CellCongestionComparer(_cells));
+
+        for (var x = 0; x < _gridSize.x; x++)
+        {
+            for (var y = 0; y < _gridSize.y; y++)
+            {
+                var cellCoords = new Vector2Int(x, y);
+                var cell = _cells[cellCoords.x, cellCoords.y];
+
+                // Skip empty cells
+                if (!cell.HasLocations)
+                {
+                    continue;
+                }
+                
+                _coordsByCongestion.Add(cellCoords);
+            }
+        }
     }
 
     public Location RequestNear(Vector3 worldPos, Location previous)
     {
         var requestCoords = WorldToCell(worldPos);
-        var previousCoords = WorldToCell(previous.Position);
         
-        _cellBuffer.Clear();
+        // If the previous location is null, use the current position as this removes any bias from the direction
+        var previousCoords = previous == null ? WorldToCell(worldPos) : WorldToCell(previous.Position);
+        
+        DebugLog.Write($"Requesting location around {requestCoords} | {worldPos} with previous coords {previousCoords}");
+        
+        _tempCoordsBuffer.Clear();
 
         var congestionRms = 0f;
         
@@ -170,36 +208,33 @@ public class LocationSystem
                 if (!cell.HasLocations)
                     continue;
                 
-                _cellBuffer.Add(coords);
+                _tempCoordsBuffer.Add(coords);
                 congestionRms += cell.Congestion * cell.Congestion;
             }
         }
 
-        if (_cellBuffer.Count == 0)
+        if (_tempCoordsBuffer.Count == 0)
         {
-            // We can't go to any neighboring cell for some reason, grab something from the current cell. 
+            // We can't go to any neighboring cell for some reason, grab something from the current cell, and if that fails too, search map-wide. 
             var currentCell = _cells[requestCoords.x, requestCoords.y];
-            return currentCell.Locations.Count > 0 ? currentCell.Locations[Random.Range(0, currentCell.Locations.Count)] : null;
+            return currentCell.HasLocations ? AssignLocation(requestCoords) : RequestFar();
         }
         
-        congestionRms = Mathf.Sqrt(congestionRms / _cellBuffer.Count);
+        congestionRms = Mathf.Sqrt(congestionRms / _tempCoordsBuffer.Count);
+        
+        Vector2Int? bestCoords = null;
+        var bestScore = float.MinValue; 
 
-        if (congestionRms < 1e-2)
-        {
-            congestionRms = 1f;
-        }
-        
         // Second pass: normalize the congestions by the average, subtract one and multiply by -1 to get the congestion penalty
         // The previously visited cell gets -1 weight and it's neighbors get -0.5
         // Add a random weight between 0 and 1
-        for (var i = 0; i < _cellBuffer.Count; i++)
+        for (var i = 0; i < _tempCoordsBuffer.Count; i++)
         {
-            var coords =  _cellBuffer[i];
+            var coords =  _tempCoordsBuffer[i];
             ref var cell =  ref _cells[coords.x, coords.y];
             
-            // The congestion score is +ve for cells with below average congestion and -ve for above average
-            // We use base 2 log so that congestion of 2x or 0.5x the average has a score of +-1
-            var congestionScore = -1 * Mathf.Log(cell.Congestion / congestionRms, 2);
+            // The vacancy score is +ve for cells with below average congestion and -ve for above average
+            var vacancyScore = -1 * (cell.Congestion - congestionRms);
             
             // The momentum score penalizes the previously visited cell and it's neighbors and thus imparts a momentum on the next pick
             // We use the Chebyshev distance to avoid diagonals getting extra penalties
@@ -209,22 +244,50 @@ public class LocationSystem
             // Add some randomization
             var randomization = Random.Range(0f, 1f);
             
-            var score = congestionScore + momentumScore + randomization;
-        }
+            var score = vacancyScore + momentumScore + randomization;
+            
+            DebugLog.Write($"Cell {coords} score: {score} vacancy: {vacancyScore} momentum: {momentumScore} randomization: {randomization}");
 
-        return null;
+            if (!(score > bestScore)) continue;
+            
+            bestScore = score;
+            bestCoords = coords;
+        }
+        
+        DebugLog.Write($"Best pick is {bestCoords} with score: {bestScore}");
+
+        return bestCoords.HasValue ? AssignLocation(bestCoords.Value) : RequestFar();
     }
 
     public void Return(Location location)
     {
         var coords = WorldToCell(location.Position);
         ref var cell = ref _cells[coords.x, coords.y];
+        
+        _coordsByCongestion.Remove(coords);
         cell.Congestion--;
+        _coordsByCongestion.Add(coords);
 
         if (cell.Congestion >= 0) return;
 
         cell.Congestion = 0;
         DebugLog.Write($"Returning {location} to the pool resulted in negative congestion");
+    }
+    
+    private Location RequestFar()
+    {
+        return AssignLocation(_coordsByCongestion.Min);
+    }
+
+    private Location AssignLocation(Vector2Int coords)
+    {
+        ref var cell = ref _cells[coords.x, coords.y];
+
+        _coordsByCongestion.Remove(coords);
+        cell.Congestion++;
+        _coordsByCongestion.Add(coords);
+
+        return cell.Locations[Random.Range(0, cell.Locations.Count)];
     }
 
     private bool CheckPathing(Vector2Int center, Vector3 candidatePos)
@@ -303,13 +366,13 @@ public class LocationSystem
         return new Vector2Int(x, y);
     }
     
-    private static void Shuffle(List<Location> objectives)
+    private static void Shuffle<T>(List<T> items)
     {
         // Fisher-Yates in-place shuffle
-        for (var i = 0; i < objectives.Count; i++)
+        for (var i = 0; i < items.Count; i++)
         {
-            var randomIndex = Random.Range(i, objectives.Count);
-            (objectives[i], objectives[randomIndex]) = (objectives[randomIndex], objectives[i]);
+            var randomIndex = Random.Range(i, items.Count);
+            (items[i], items[randomIndex]) = (items[randomIndex], items[i]);
         }
     }
 
@@ -361,5 +424,17 @@ public class LocationSystem
         var location = new Location(_idCounter, LocationCategory.Synthetic, $"Synthetic_{_idCounter}", position);
         _idCounter++;
         return location;
+    }
+    
+    private class CellCongestionComparer(Cell[,] cells) : IComparer<Vector2Int>
+    {
+        public int Compare(Vector2Int a, Vector2Int b)
+        {
+            var cellA = cells[a.x, a.y];
+            var cellB = cells[b.x, b.y];
+
+            // Compare congestion and then tie-break by Id
+            return cellA.Congestion != cellB.Congestion ? cellA.Congestion.CompareTo(cellB.Congestion) : cellA.Id.CompareTo(cellB.Id);
+        }
     }
 }

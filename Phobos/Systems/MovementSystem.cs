@@ -17,7 +17,7 @@ public class MovementSystem(NavJobExecutor navJobExecutor)
     private const float CornerReachedWalkDistSqr = 0.15f * 0.15f;
     private const float CornerReachedSprintDistSqr = 0.3f * 0.3f;
     private const float TargetReachedDistSqr = 1f;
-    
+
     private readonly Queue<ValueTuple<Agent, NavJob>> _moveJobs = new(20);
 
     public void Update(List<Agent> liveAgents)
@@ -54,6 +54,7 @@ public class MovementSystem(NavJobExecutor navJobExecutor)
                 {
                     ResetPath(agent.Movement);
                 }
+
                 continue;
             }
 
@@ -67,7 +68,7 @@ public class MovementSystem(NavJobExecutor navJobExecutor)
         ScheduleMoveJob(agent, destination);
         agent.Movement.Retry = 0;
     }
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     public void MoveToDirect(Agent agent, Vector3 destination)
     {
@@ -161,18 +162,18 @@ public class MovementSystem(NavJobExecutor navJobExecutor)
                 bot.BotLay.GetUp(true);
             }
         }
-
+        
         // Path handling
         var moveVector = movement.Path[movement.CurrentCorner] - bot.Position;
-        var nextCornerIndex = movement.CurrentCorner + 1; 
+        var nextCornerIndex = movement.CurrentCorner + 1;
         var hasNextCorner = nextCornerIndex < movement.Path.Length;
-        
+
         if (hasNextCorner)
         {
             var cornerReached = false;
             var cornerReachedEps = bot.Mover.Sprinting ? CornerReachedSprintDistSqr : CornerReachedWalkDistSqr;
             var moveVectorSqrMag = moveVector.sqrMagnitude;
-            
+
             if (moveVectorSqrMag <= cornerReachedEps)
             {
                 cornerReached = true;
@@ -180,13 +181,13 @@ public class MovementSystem(NavJobExecutor navJobExecutor)
             else if (moveVectorSqrMag < 1f)
             {
                 var nextCorner = movement.Path[nextCornerIndex];
-            
+
                 if (!NavMesh.Raycast(bot.Position, nextCorner, out _, NavMesh.AllAreas))
                 {
                     cornerReached = true;
                 }
             }
-            
+
             if (cornerReached)
             {
                 movement.CurrentCorner = nextCornerIndex;
@@ -198,31 +199,33 @@ public class MovementSystem(NavJobExecutor navJobExecutor)
             if (movement.Status == NavMeshPathStatus.PathPartial)
             {
                 ResetPath(movement);
-                
+
                 if (movement.Retry >= RetryLimit)
                 {
                     movement.Status = NavMeshPathStatus.PathInvalid;
                     return;
                 }
-                
+
                 MoveRetry(agent, movement.Target);
                 return;
             }
 
-            if ((movement.Path[movement.CurrentCorner] - bot.Position).sqrMagnitude <= TargetReachedDistSqr)
+            // Sometimes the last movement corner might not be exactly on the actual target. Add an extra check to short circuit.
+            if ((movement.Target - bot.Position).sqrMagnitude <= TargetReachedDistSqr
+                || (movement.Path[movement.CurrentCorner] - bot.Position).sqrMagnitude <= TargetReachedDistSqr)
             {
                 ResetPath(movement);
                 return;
             }
         }
-        
+
         // Steering
         moveVector.Normalize();
         var moveDir = CalcMoveDirection(moveVector, player.Rotation);
         player.CharacterController.SetSteerDirection(moveVector);
         player.Move(moveDir);
         bot.AimingManager.CurrentAiming.Move(player.Speed);
-        
+
         if (movement.VoxelUpdatePacing.Allowed())
         {
             bot.AIData.SetPosToVoxel(bot.Position);
@@ -259,7 +262,7 @@ public class MovementSystem(NavJobExecutor navJobExecutor)
             {
                 agent.Bot.GetPlayer.MovementContext.IgnoreInteractionCollision(door.Collider, true);
             }
-            
+
             door.Open();
             foundDoors = true;
         }
@@ -273,7 +276,7 @@ public class MovementSystem(NavJobExecutor navJobExecutor)
         movement.Path = null;
         movement.CurrentCorner = 0;
     }
-    
+
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void AssignTarget(Movement movement, NavJob job)
     {

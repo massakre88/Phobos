@@ -4,10 +4,12 @@ using Phobos.Data;
 using Phobos.Diag;
 using Phobos.Entities;
 using Phobos.Navigation;
+using Phobos.Systems;
+using UnityEngine;
 
 namespace Phobos.Tasks.Strategies;
 
-public class GotoObjectiveStrategy(SquadData squadData, LocationQueue locationQueue, float hysteresis) : Task<Squad>(hysteresis)
+public class GotoObjectiveStrategy(SquadData squadData, LocationSystem locationSystem, float hysteresis) : Task<Squad>(hysteresis)
 {
     public override void UpdateScore(int ordinal)
     {
@@ -27,7 +29,20 @@ public class GotoObjectiveStrategy(SquadData squadData, LocationQueue locationQu
         
             if (squad.Objective.Location == null)
             {
-                squad.Objective.Location = locationQueue.Next();
+                // Pick a random bot to source a position on the map
+                var agent = squad.Members[Random.Range(0, squad.Members.Count)];
+                
+                var newLocation = locationSystem.RequestNear(agent.Bot.Position, squad.Objective.LocationPrevious);
+
+                if (newLocation == null)
+                {
+                    DebugLog.Write($"{squad} received null objective location");
+                    continue;
+                }
+                
+                squad.Objective.LocationPrevious = squad.Objective.Location;
+                squad.Objective.Location = newLocation;
+                
                 DebugLog.Write($"{squad} assigned objective {squad.Objective.Location}");
             }
         

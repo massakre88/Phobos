@@ -129,7 +129,7 @@ public class PhobosManager
     {
         var strategies = new DefinitionRegistry<Task<Squad>>();
         
-        strategies.Add(new GotoObjectiveStrategy(SquadData, new LocationQueue(), 0.25f));
+        strategies.Add(new GotoObjectiveStrategy(SquadData, LocationSystem, 0.25f));
 
         OnRegisterStrategies?.Invoke(strategies);
 
