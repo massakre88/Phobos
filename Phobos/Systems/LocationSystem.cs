@@ -45,6 +45,8 @@ public class LocationSystem
     private readonly float _cellSize;
     private readonly Vector2Int _gridSize;
     private readonly Vector2 _worldOffset; // Bottom-left corner in world space
+    private readonly Vector2 _worldMin;
+    private readonly Vector2 _worldMax;
 
     private readonly Vector2Int _hotSpot;
     private readonly float _convergenceFactor;
@@ -54,35 +56,40 @@ public class LocationSystem
 
     private static int _idCounter;
 
+    public Cell[,] Cells => _cells;
+    public Vector2Int GridSize => _gridSize;
+    public Vector2 WorldMin => _worldMin;
+    public Vector2 WorldMax => _worldMax;
+
     public LocationSystem(BotsController botsController)
     {
         var locations = CollectLocations();
         Shuffle(locations);
 
         // Calculate bounds from positions
-        var worldMin = new Vector3(float.MaxValue, float.MaxValue, float.MaxValue);
-        var worldMax = new Vector3(float.MinValue, float.MinValue, float.MinValue);
+        _worldMin = new Vector2(float.MaxValue, float.MaxValue);
+        _worldMax = new Vector2(float.MinValue, float.MinValue);
 
         for (var i = 0; i < locations.Count; i++)
         {
             var pos = locations[i].Position;
 
-            worldMin.x = Mathf.Min(worldMin.x, pos.x);
-            worldMin.z = Mathf.Min(worldMin.z, pos.z);
-            worldMax.x = Mathf.Max(worldMax.x, pos.x);
-            worldMax.z = Mathf.Max(worldMax.z, pos.z);
+            _worldMin.x = Mathf.Min(_worldMin.x, pos.x);
+            _worldMin.y = Mathf.Min(_worldMin.y, pos.z);
+            _worldMax.x = Mathf.Max(_worldMax.x, pos.x);
+            _worldMax.y = Mathf.Max(_worldMax.y, pos.z);
         }
 
         // Add padding to bounds
-        worldMin.x -= 10f;
-        worldMin.z -= 10f;
-        worldMax.x += 10f;
-        worldMax.z += 10f;
+        _worldMin.x -= 10f;
+        _worldMin.y -= 10f;
+        _worldMax.x += 10f;
+        _worldMax.y += 10f;
 
-        _worldOffset = new Vector2(worldMin.x, worldMin.z);
+        _worldOffset = new Vector2(_worldMin.x, _worldMin.y);
 
-        var worldWidth = worldMax.x - worldMin.x;
-        var worldHeight = worldMax.z - worldMin.z;
+        var worldWidth = _worldMax.x - _worldMin.x;
+        var worldHeight = _worldMax.y - _worldMin.y;
 
         // Calculate cell size that gives us at least minCells cells
         var cellSizeFromWidth = worldWidth / MinCells;
@@ -101,7 +108,7 @@ public class LocationSystem
         var searchRadius = Math.Max(worldWidth, worldHeight) / 2f;
 
         DebugLog.Write($"Location grid cell size: {_gridSize}, radius: {_cellSize:F1}, locations: {locations.Count}");
-        DebugLog.Write($"Location grid world bounds: [{worldMin.x:F0},{worldMin.z:F0}] -> [{worldMax.x:F0},{worldMax.z:F0}]");
+        DebugLog.Write($"Location grid world bounds: [{_worldMin.x:F0},{_worldMin.y:F0}] -> [{_worldMax.x:F0},{_worldMax.y:F0}]");
         DebugLog.Write($"Location grid world size: {worldWidth:F0}x{worldHeight:F0} search radius: {searchRadius}");
 
         // Cell initialization. We want to randomize the ids assigned to cells, so that their id based ordering is random.

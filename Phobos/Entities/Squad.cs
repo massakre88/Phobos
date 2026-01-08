@@ -11,6 +11,8 @@ public class Squad(int id, float[] taskScores) : Entity(id, taskScores)
 {
     public readonly List<Agent> Members = new(6);
     public readonly SquadObjective Objective = new();
+
+    public Agent Leader;
     
     public int Size {
         [MethodImpl(MethodImplOptions.AggressiveInlining)]

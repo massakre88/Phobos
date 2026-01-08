@@ -8,6 +8,7 @@ namespace Phobos.Entities;
 public class Agent(int id, BotOwner bot, float[] taskScores) : Entity(id, taskScores)
 {
     public bool IsActive;
+    public bool IsLeader;
     
     public readonly BotOwner Bot = bot;
     public readonly Movement Movement = new();

@@ -1,10 +1,14 @@
-﻿using System.Collections;
+﻿using System;
+using System.Collections;
 using System.Collections.Generic;
 using System.Diagnostics.CodeAnalysis;
 using BepInEx;
 using BepInEx.Configuration;
 using BepInEx.Logging;
+using Comfort.Common;
 using DrakiaXYZ.BigBrain.Brains;
+using EFT;
+using Phobos.Diag;
 using Phobos.Enums;
 using Phobos.Patches;
 using UnityEngine;
@@ -75,7 +79,7 @@ public class Plugin : BaseUnityPlugin
         };
         
         // TODO: Revert to 19
-        BrainManager.AddCustomLayer(typeof(PhobosLayer), brains,119);
+        BrainManager.AddCustomLayer(typeof(PhobosLayer), brains,50000);
 
         // This layer makes scavs stand still doing bugger all, remove it
         BrainManager.RemoveLayer("AssaultEnemyFar", brains);
@@ -104,10 +108,44 @@ public class Plugin : BaseUnityPlugin
         /*
          * Deboog
          */
+        Config.Bind(debug, "Location System Telemetry", "", new ConfigDescription(
+            "Displays information about the location system state",
+            null,
+            new ConfigurationManagerAttributes { Order = 2, CustomDrawer = LocationSystemTelemetryToggle }
+        ));
+        
         _loggingEnabled = Config.Bind(debug, "Enable Debug Logging (RESTART)", true, new ConfigDescription(
             "Duh. Requires restarting the game to take effect.",
             null,
             new ConfigurationManagerAttributes { Order = 1 }
         ));
+    }
+    
+    private static void LocationSystemTelemetryToggle(ConfigEntryBase entry)
+    {
+        if (GUILayout.Button("Show"))
+        {
+            var gameWorld = Singleton<GameWorld>.Instance;
+        
+            if (gameWorld == null)
+                return;
+            
+            gameWorld.GetOrAddComponent<LocationSystemTelemetry>();
+        }
+
+        if (GUILayout.Button("Hide"))
+        {
+            var gameWorld = Singleton<GameWorld>.Instance;
+        
+            if (gameWorld == null)
+                return;
+            
+            var component =  gameWorld.GetComponent<LocationSystemTelemetry>();
+            
+            if (component == null)
+                return;
+            
+            Destroy(component);
+        }
     }
 }

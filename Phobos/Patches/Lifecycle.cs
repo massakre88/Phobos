@@ -30,12 +30,8 @@ public class PhobosInitPatch : ModulePatch
         // Core
         var phobosManager = new PhobosManager(__instance);
 
-        // Telemetry
-        var telemetry = new Telemetry(phobosManager);
-
         // Registry
         Singleton<PhobosManager>.Create(phobosManager);
-        Singleton<Telemetry>.Create(telemetry);
     }
 }
 
@@ -73,7 +69,6 @@ public class PhobosDisposePatch : ModulePatch
     {
         Plugin.Log.LogInfo("Disposing of static & long lived objects.");
         Singleton<PhobosManager>.Release(Singleton<PhobosManager>.Instance);
-        Singleton<Telemetry>.Release(Singleton<Telemetry>.Instance);
         Plugin.Log.LogInfo("Disposing complete.");
     }
 }

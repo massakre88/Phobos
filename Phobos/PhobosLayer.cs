@@ -31,7 +31,7 @@ public class PhobosLayer : CustomLayer
 
     private int _activationFrame;
 
-    private readonly PhobosManager _phobosManager;
+    private readonly PhobosManager _phobos;
     private readonly Agent _agent;
     private readonly Squad _squad; 
     
@@ -41,12 +41,12 @@ public class PhobosLayer : CustomLayer
         botOwner.StandBy.CanDoStandBy = false;
         botOwner.StandBy.Activate();
         
-        _phobosManager = Singleton<PhobosManager>.Instance;
+        _phobos = Singleton<PhobosManager>.Instance;
         
-        _agent = _phobosManager.AddAgent(botOwner);
+        _agent = _phobos.AddAgent(botOwner);
 
         var bsgSquadId = _agent.Bot.BotsGroup.Id;
-        _squad = _phobosManager.SquadRegistry[bsgSquadId];
+        _squad = _phobos.SquadRegistry[bsgSquadId];
 
         botOwner.Brain.BaseBrain.OnLayerChangedTo += OnLayerChanged;
         botOwner.GetPlayer.OnPlayerDead += OnDead;
@@ -56,7 +56,7 @@ public class PhobosLayer : CustomLayer
     {
         player.OnPlayerDead -= OnDead;
         _agent.IsActive = false;
-        _phobosManager.RemoveAgent(_agent);
+        _phobos.RemoveAgent(_agent);
     }
 
     private void OnLayerChanged(AICoreLayerClass<BotLogicDecision> layer)
@@ -114,7 +114,20 @@ public class PhobosLayer : CustomLayer
         sb.AppendLine("*** Squad ***");
         sb.AppendLine($"{_squad}, size: {_squad.Size}");
         sb.AppendLine("*** Actions ***");
-        Singleton<Telemetry>.Instance.GenerateUtilityReport(_agent, sb);
+        GenerateUtilityReport(sb);
         // sb.AppendLine($"Standby: {BotOwner.StandBy.StandByType} CanDoStandBy: {BotOwner.StandBy.CanDoStandBy}");
+    }
+    
+    private void GenerateUtilityReport(StringBuilder sb)
+    {
+        var actions = _phobos.ActionManager.Tasks;
+        
+        for (var i = 0; i < actions.Length; i++)
+        {
+            var action = actions[i];
+            var score = _agent.TaskScores[i];
+            var prefix = action == _agent.TaskAssignment.Task ? "*" : "";
+            sb.AppendLine($"{prefix}{action.GetType().Name}: {score:0.00}");
+        }
     }
 }

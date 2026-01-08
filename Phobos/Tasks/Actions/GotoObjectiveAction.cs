@@ -9,10 +9,11 @@ namespace Phobos.Tasks.Actions;
 
 public class GotoObjectiveAction(AgentData dataset, MovementSystem movementSystem, float hysteresis) : Task<Agent>(hysteresis)
 {
+    public const float ObjectiveEpsDistSqr = 10f * 10f;
+    
     private const float UtilityBase = 0.5f;
     private const float UtilityBoost = 0.15f;
     private const float UtilityBoostMaxDistSqr = 50f * 50f;
-    private const float ObjectiveEpsDistSqr = 10f * 10f;
 
     public override void UpdateScore(int ordinal)
     {

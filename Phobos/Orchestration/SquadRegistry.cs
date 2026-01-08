@@ -21,7 +21,9 @@ public class SquadRegistry(SquadData squadData, StrategyManager strategyManager)
     public void AddAgent(Agent agent)
     {
         var bsgSquadId = agent.Bot.BotsGroup.Id;
+        
         Squad squad;
+        
         if (_squadIdMap.TryGetValue(bsgSquadId, out var squadId))
         {
             squad = squadData.Entities[squadId];
@@ -31,6 +33,9 @@ public class SquadRegistry(SquadData squadData, StrategyManager strategyManager)
             squad = squadData.AddEntity(strategyManager.Tasks.Length);
             _squadIdMap.Add(bsgSquadId, squad.Id);
             DebugLog.Write($"Registered new {squad}");
+            
+            squad.Leader = agent;
+            DebugLog.Write($"{squad} assigned new leader {squad.Leader}");
         }
 
         squad.AddAgent(agent);
@@ -45,7 +50,16 @@ public class SquadRegistry(SquadData squadData, StrategyManager strategyManager)
         squad.RemoveAgent(agent);
         DebugLog.Write($"Removed {agent} from {squad} with {squad.Size} members remaining");
 
-        if (squad.Size > 0) return;
+        if (squad.Size > 0)
+        {
+            // Reassign squad leader if neccessary
+            if (agent != squad.Leader) return;
+            
+            squad.Leader = squad.Members[^1];
+            DebugLog.Write($"{squad} assigned new leader {squad.Leader}");
+
+            return;
+        }
 
         DebugLog.Write($"Removing empty {squad}");
         _squadIdMap.Remove(agent.Bot.BotsGroup.Id);
