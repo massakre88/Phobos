@@ -34,13 +34,14 @@ public class LocationSystemTelemetry : MonoBehaviour
         RenderGrid(
             phobos.AgentData.Entities.Values,
             phobos.LocationSystem.Cells,
+            phobos.LocationSystem.AdvectionField,
             phobos.LocationSystem.GridSize,
             phobos.LocationSystem.WorldMin,
             phobos.LocationSystem.WorldMax
         );
     }
 
-    private void RenderGrid(List<Agent> agents, Cell[,] cells, Vector2Int gridSize, Vector2 worldMin, Vector2 worldMax)
+    private void RenderGrid(List<Agent> agents, Cell[,] cells, Vector2[,] advectionField, Vector2Int gridSize, Vector2 worldMin, Vector2 worldMax)
     {
         if (cells == null || gridSize.x == 0 || gridSize.y == 0)
             return;
@@ -48,13 +49,13 @@ public class LocationSystemTelemetry : MonoBehaviour
         // Calculate display dimensions to keep cells square
         var maxDimension = Mathf.Max(gridSize.x, gridSize.y);
         var cellSize = GridDisplaySize / maxDimension;
-    
+
         var displayWidth = cellSize * gridSize.x;
         var displayHeight = cellSize * gridSize.y;
 
         var gridRect = new Rect(
-            (Screen.width - displayWidth) / 2f,
-            (Screen.height - displayHeight) / 2f,
+            (Screen.width - displayWidth) * 0.25f,
+            (Screen.height - displayHeight) * 0.5f,
             displayWidth,
             displayHeight
         );
@@ -74,6 +75,15 @@ public class LocationSystemTelemetry : MonoBehaviour
                 var cell = cells[x, y];
                 var color = cell.HasLocations ? GetCongestionColor(cell.Congestion) : _invalidCellColor;
                 DrawFilledRect(cellRect, color);
+
+                // Advection
+                // Have to flip the Y axis coordinate
+                var advectionVector = advectionField[x, y] * new Vector2(1f, -1f);
+
+                if (!(advectionVector.magnitude > 0.01f)) continue;
+
+                var cellCenter = new Vector2(cellRect.x + cellRect.width / 2, cellRect.y + cellRect.height / 2);
+                DrawLine(cellCenter, cellCenter + cellSize * advectionVector / 2, 1f);
             }
         }
 
@@ -104,7 +114,7 @@ public class LocationSystemTelemetry : MonoBehaviour
             // Convert world position to grid display position
             var normX = (pos.x - worldMin.x) / worldWidth;
             var normY = (pos.z - worldMin.y) / worldHeight;
-            
+
             var screenX = gridRect.x + normX * displayWidth;
             var screenY = gridRect.y + (1f - normY) * displayHeight; // Flip Y
 

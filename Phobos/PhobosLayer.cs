@@ -33,7 +33,7 @@ public class PhobosLayer : CustomLayer
 
     private readonly PhobosManager _phobos;
     private readonly Agent _agent;
-    private readonly Squad _squad; 
+
     
     public PhobosLayer(BotOwner botOwner, int priority) : base(botOwner, priority)
     {
@@ -42,12 +42,8 @@ public class PhobosLayer : CustomLayer
         botOwner.StandBy.Activate();
         
         _phobos = Singleton<PhobosManager>.Instance;
-        
         _agent = _phobos.AddAgent(botOwner);
-
-        var bsgSquadId = _agent.Bot.BotsGroup.Id;
-        _squad = _phobos.SquadRegistry[bsgSquadId];
-
+        
         botOwner.Brain.BaseBrain.OnLayerChangedTo += OnLayerChanged;
         botOwner.GetPlayer.OnPlayerDead += OnDead;
     }
@@ -112,7 +108,7 @@ public class PhobosLayer : CustomLayer
         sb.AppendLine($"HasEnemy: {BotOwner.Memory.HaveEnemy} UnderFire: {BotOwner.Memory.IsUnderFire}");
         sb.AppendLine($"Pose: {BotOwner.GetPlayer.MovementContext.PoseLevel} Speed: {BotOwner.Mover?.DestMoveSpeed}");
         sb.AppendLine("*** Squad ***");
-        sb.AppendLine($"{_squad}, size: {_squad.Size}");
+        sb.AppendLine($"{_agent.Squad}, size: {_agent.Squad.Size}");
         sb.AppendLine("*** Actions ***");
         GenerateUtilityReport(sb);
         // sb.AppendLine($"Standby: {BotOwner.StandBy.StandByType} CanDoStandBy: {BotOwner.StandBy.CanDoStandBy}");

@@ -14,8 +14,8 @@ namespace Phobos.Systems;
 public class MovementSystem(NavJobExecutor navJobExecutor)
 {
     private const int RetryLimit = 10;
-    private const float CornerReachedWalkDistSqr = 0.15f * 0.15f;
-    private const float CornerReachedSprintDistSqr = 0.3f * 0.3f;
+    private const float CornerReachedWalkDistSqr = 0.35f * 0.35f;
+    private const float CornerReachedSprintDistSqr = 0.6f * 0.6f;
     private const float TargetReachedDistSqr = 1f;
 
     private readonly Queue<ValueTuple<Agent, NavJob>> _moveJobs = new(20);

@@ -10,6 +10,7 @@ using DrakiaXYZ.BigBrain.Brains;
 using EFT;
 using Phobos.Diag;
 using Phobos.Enums;
+using Phobos.Orchestration;
 using Phobos.Patches;
 using UnityEngine;
 
@@ -24,8 +25,12 @@ public class Plugin : BaseUnityPlugin
 
     public static ManualLogSource Log;
 
-    public static ConfigEntry<float> RaidConvergence;
-    public static ConfigEntry<float> RaidConvergenceRandomness;
+    public static ConfigEntry<float> HotspotRadius;
+    public static ConfigEntry<float> HotSpotRadiusDecay;
+    
+    public static ConfigEntry<float> RaidAdvection;
+    public static ConfigEntry<float> RaidAdvectionRandomness;
+    
     private static ConfigEntry<bool> _loggingEnabled;
     
     private void Awake()
@@ -93,13 +98,27 @@ public class Plugin : BaseUnityPlugin
         /*
          * General
          */
-        RaidConvergence = Config.Bind(general, "Raid Convergence", 0f, new ConfigDescription(
+        HotspotRadius = Config.Bind(general, "Hotspot Radius", 200f, new ConfigDescription(
+            "",
+            new AcceptableValueRange<float>(0f, 1000f),
+            new ConfigurationManagerAttributes { Order = 4 }
+        ));
+        HotspotRadius.SettingChanged += HotspotParametersChanged;
+        
+        HotSpotRadiusDecay = Config.Bind(general, "Hotspot Decay", 1f, new ConfigDescription(
+            "",
+            new AcceptableValueRange<float>(0f, 4f),
+            new ConfigurationManagerAttributes { Order = 3 }
+        ));
+        HotSpotRadiusDecay.SettingChanged += HotspotParametersChanged;
+        
+        RaidAdvection = Config.Bind(general, "Advection", 0f, new ConfigDescription(
             "",
             new AcceptableValueRange<float>(-10f, 10f),
             new ConfigurationManagerAttributes { Order = 2 }
         ));
         
-        RaidConvergenceRandomness = Config.Bind(general, "Raid Convergence Randomness", 1f, new ConfigDescription(
+        RaidAdvectionRandomness = Config.Bind(general, "Advection Randomness", 1f, new ConfigDescription(
             "",
             new AcceptableValueRange<float>(0f, 1f),
             new ConfigurationManagerAttributes { Order = 1 }
@@ -119,6 +138,11 @@ public class Plugin : BaseUnityPlugin
             null,
             new ConfigurationManagerAttributes { Order = 1 }
         ));
+    }
+
+    private static void HotspotParametersChanged(object sender, EventArgs args)
+    {
+        Singleton<PhobosManager>.Instance?.LocationSystem.CalculateAdvectionField();
     }
     
     private static void LocationSystemTelemetryToggle(ConfigEntryBase entry)

@@ -32,7 +32,7 @@ public class LocationSystem
     private const int MinCells = 3;
     private const float MaxCellSize = 50f;
 
-    private static readonly string[] HotSpots =
+    private static readonly HashSet<string> HotSpotNames =
     [
         "ZoneSubStorage", "ZoneBarrack", // rezervbase
         "ZoneSanatorium1", "ZoneSanatorium2", // shoreline
@@ -48,11 +48,13 @@ public class LocationSystem
     private readonly Vector2 _worldMin;
     private readonly Vector2 _worldMax;
 
-    private readonly Vector2Int _hotSpot;
-    private readonly float _convergenceFactor;
+    private readonly Vector2[,] _advectionField;
+    private readonly float _advectionFactor;
 
     private readonly SortedSet<Vector2Int> _coordsByCongestion;
     private readonly List<Vector2Int> _tempCoordsBuffer = [];
+
+    private readonly Vector2Int[] _hotSpots;
 
     private static int _idCounter;
 
@@ -60,6 +62,7 @@ public class LocationSystem
     public Vector2Int GridSize => _gridSize;
     public Vector2 WorldMin => _worldMin;
     public Vector2 WorldMax => _worldMax;
+    public Vector2[,] AdvectionField => _advectionField;
 
     public LocationSystem(BotsController botsController)
     {
@@ -200,52 +203,71 @@ public class LocationSystem
 
         // Hotspot
         var botZones = botsController.BotSpawner.AllBotZones;
-        var validZones = new List<BotZone>();
-
-        for (var i = 0; i < HotSpots.Length; i++)
-        {
-            var hotSpotName = HotSpots[i];
-            validZones.AddRange(from zone in botZones where zone.NameZone == hotSpotName select zone);
-        }
-
-        if (validZones.Count > 0)
-        {
-            var pick = validZones[Random.Range(0, validZones.Count)];
-            _hotSpot = WorldToCell(pick.CenterOfSpawnPoints);
-            DebugLog.Write($"Picked hotspot {pick.NameZone} at cell {_hotSpot}");
-        }
-        else
+        _hotSpots = (from zone in botZones where HotSpotNames.Contains(zone.NameZone) select WorldToCell(zone.CenterOfSpawnPoints)).ToArray();
+        if (_hotSpots.Length == 0)
         {
             // Pick the center cell
-            _hotSpot = new Vector2Int(_gridSize.x / 2, _gridSize.y / 2);
-            DebugLog.Write($"Picked central hotspot at cell {_hotSpot}");
+            var hotSpot = new Vector2Int(_gridSize.x / 2, _gridSize.y / 2);
+            _hotSpots = [hotSpot];
+            DebugLog.Write($"No hotspots found on map, picking central hotspot at cell {hotSpot}");
         }
 
-        _convergenceFactor = Random.Range(-Plugin.RaidConvergenceRandomness.Value, Plugin.RaidConvergenceRandomness.Value);
-        DebugLog.Write($"Raid Convergence Randomization Factor: {_convergenceFactor}");
+        DebugLog.Write($"Collected {_hotSpots.Length} hotspots");
+
+        // Advection
+        _advectionFactor = Random.Range(0, Plugin.RaidAdvectionRandomness.Value);
+        _advectionField = new Vector2[_gridSize.x, _gridSize.y];
+        CalculateAdvectionField();
+    }
+
+    public void CalculateAdvectionField()
+    {
+        for (var x = 0; x < _gridSize.x; x++)
+        {
+            for (var y = 0; y < _gridSize.y; y++)
+            {
+                var cellCoords = new Vector2Int(x, y);
+
+                _advectionField[x, y] = Vector2.zero;
+
+                // Add up all the hotspot contributions to this cell
+                for (var i = 0; i < _hotSpots.Length; i++)
+                {
+                    var hotSpotCoords = _hotSpots[i];
+                    // Get the world space distance between the hotspot and the current cell
+                    var worldDist = (CellToWorld(hotSpotCoords) - CellToWorld(cellCoords)).magnitude;
+                    // The metric is the cartesian distance to the hotspot normalized by the hotspot range and clamped 
+                    var metric = Mathf.Clamp01(1f - worldDist / Plugin.HotspotRadius.Value);
+                    // Apply a decay factor (1 is linear, <1 sublinear and >1 exponential).
+                    metric = Mathf.Pow(metric, Plugin.HotSpotRadiusDecay.Value);
+                    // Accumulate the advection
+                    _advectionField[x, y] += metric * ((Vector2)(hotSpotCoords - cellCoords)).normalized;
+                }
+                
+                DebugLog.Write($"Cell {cellCoords} advection {_advectionField[x, y]} length {_advectionField[x, y].magnitude}");
+            }
+        }
     }
 
     public Location RequestNear(Vector3 worldPos, Location previous)
     {
         var requestCoords = WorldToCell(worldPos);
-
-        // If the previous location is null, use the current position as this removes any bias from the direction
         var previousCoords = previous == null ? WorldToCell(worldPos) : WorldToCell(previous.Position);
 
         DebugLog.Write($"Requesting location around {requestCoords} | {worldPos} with previous coords {previousCoords}");
 
         _tempCoordsBuffer.Clear();
+        var advection = Vector2.zero;
 
-        var congestionRms = 0f;
-
-        // First pass: determine the average congestion in the surrounding cells
+        // First pass: determine preferential direction
         for (var dx = -1; dx <= 1; dx++)
         {
             for (var dy = -1; dy <= 1; dy++)
             {
                 if (dx == 0 && dy == 0) continue;
 
-                var coords = new Vector2Int(requestCoords.x + dx, requestCoords.y + dy);
+                var direction = new Vector2Int(dx, dy);
+                var coords = requestCoords + direction;
 
                 if (!IsValidCell(coords))
                     continue;
@@ -255,63 +277,46 @@ public class LocationSystem
                 if (!cell.HasLocations)
                     continue;
 
-                _tempCoordsBuffer.Add(coords);
-                congestionRms += cell.Congestion * cell.Congestion;
+                var vacancyVector = -1 * cell.Congestion * ((Vector2)direction).normalized;
+                var momentumVector = (Vector2)(requestCoords - previousCoords);
+                momentumVector.Normalize();
+                var advectionVector = (1f - _advectionFactor) * Plugin.RaidAdvection.Value * _advectionField[coords.x, coords.y];
+                var randomization = Random.insideUnitCircle;
+
+                advection += vacancyVector + momentumVector + advectionVector + randomization;
+                _tempCoordsBuffer.Add(direction);
             }
         }
 
-        if (_tempCoordsBuffer.Count == 0)
+        if (advection == Vector2.zero)
         {
             // We can't go to any neighboring cell for some reason, grab something from the current cell, and if that fails too, search map-wide. 
             var currentCell = _cells[requestCoords.x, requestCoords.y];
             return currentCell.HasLocations ? AssignLocation(requestCoords) : RequestFar();
         }
 
-        congestionRms = Mathf.Sqrt(congestionRms / _tempCoordsBuffer.Count);
+        advection.Normalize();
 
-        Vector2Int? bestCoords = null;
-        var bestScore = float.MinValue;
+        Vector2Int? bestNeighbor = null;
+        var bestAngle = float.MaxValue;
 
-        // Second pass: normalize the congestions by the average, subtract one and multiply by -1 to get the congestion penalty
-        // The previously visited cell gets -1 weight and it's neighbors get -0.5
-        // Add a random weight between 0 and 1
+        // Second pass: find the neighboring cell closest to the picked direction
         for (var i = 0; i < _tempCoordsBuffer.Count; i++)
         {
-            var coords = _tempCoordsBuffer[i];
-            ref var cell = ref _cells[coords.x, coords.y];
+            var direction = _tempCoordsBuffer[i];
+            var angle = Vector2.Angle(direction, advection);
 
-            // The vacancy score is +ve for cells with below average congestion and -ve for above average
-            var vacancyScore = -1 * (cell.Congestion - congestionRms);
+            DebugLog.Write($"Direction {direction} -> {advection} angle: {angle}");
 
-            // The momentum score penalizes the previously visited cell and it's neighbors and thus imparts a momentum on the next pick
-            // We use the Chebyshev distance to avoid diagonals getting extra penalties
-            var chebyshev = Mathf.Max(Mathf.Abs(coords.x - previousCoords.x), Mathf.Abs(coords.y - previousCoords.y));
-            var momentumScore = -1 * (1f - Mathf.InverseLerp(0f, 3f, chebyshev));
+            if (angle >= bestAngle) continue;
 
-            // Convergence
-            var moveVector = coords - requestCoords;
-            var convergenceVector = _hotSpot - requestCoords;
-            var convergenceAngle = Vector2.Angle(moveVector, convergenceVector);
-            var convergenceScore = (1f + _convergenceFactor) * Plugin.RaidConvergence.Value * Mathf.InverseLerp(90f, 0f, convergenceAngle);
-
-            // Add some randomization
-            var randomization = Random.Range(0f, 1f);
-
-            var score = vacancyScore + momentumScore + convergenceScore + randomization;
-
-            DebugLog.Write(
-                $"Cell {coords} score: {score} vac: {vacancyScore} mom: {momentumScore} cnvrg {convergenceScore} cnvrgang {convergenceAngle} rand: {randomization}"
-            );
-
-            if (!(score > bestScore)) continue;
-
-            bestScore = score;
-            bestCoords = coords;
+            bestAngle = angle;
+            bestNeighbor = requestCoords + direction;
         }
 
-        DebugLog.Write($"Best pick is {bestCoords} with score: {bestScore}");
+        DebugLog.Write($"Best pick is {bestNeighbor} with angle: {bestAngle}");
 
-        return bestCoords.HasValue ? AssignLocation(bestCoords.Value) : RequestFar();
+        return bestNeighbor.HasValue ? AssignLocation(bestNeighbor.Value) : RequestFar();
     }
 
     public void Return(Location location)
