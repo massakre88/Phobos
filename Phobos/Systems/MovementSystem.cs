@@ -343,17 +343,13 @@ public class MovementSystem
             EBodyPartColliderType.RightCalf
         ];
 
-        private readonly TimePacing _stuckCheckPacing = new(0.1f);
-
         public void Update(Agent agent)
         {
-            if (_stuckCheckPacing.Blocked())
-                return;
-
-            var movement = agent.Movement;
-            
             var stuck = agent.Stuck;
-
+            
+            if (stuck.Pacing.Blocked())
+                return;
+            
             // Update timing
             var deltaTime = Time.time - stuck.LastUpdate;
             stuck.LastUpdate = Time.time;
@@ -379,7 +375,7 @@ public class MovementSystem
             }
 
             // Discard measurements after long periods of dormancy 
-            if (deltaTime > 2f * _stuckCheckPacing.Interval)
+            if (deltaTime > 2f * stuck.Pacing.Interval)
             {
                 ResetStuck(stuck);
                 return;
@@ -423,7 +419,7 @@ public class MovementSystem
                 {
                     DebugLog.Write($"{agent} is stuck, attempting to recalculate path.");
                     stuck.State = StuckState.Retrying;
-                    movementSystem.MoveRetry(agent, movement.Target);
+                    movementSystem.MoveRetry(agent, agent.Movement.Target);
                     break;
                 }
                 case StuckState.Retrying when stuck.Timer >= Stuck.TeleportDelay:
@@ -434,8 +430,8 @@ public class MovementSystem
                 case StuckState.Teleport when stuck.Timer >= Stuck.FailedDelay:
                     DebugLog.Write($"{agent} is stuck, giving up.");
                     stuck.State = StuckState.Failed;
-                    ResetPath(movement);
-                    movement.Status = NavMeshPathStatus.PathInvalid;
+                    ResetPath(agent.Movement);
+                    agent.Movement.Status = NavMeshPathStatus.PathInvalid;
                     break;
                 case StuckState.Failed:
                     Debug.Log("Skipping failed state");

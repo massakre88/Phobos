@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using Phobos.Helpers;
+using UnityEngine;
 
 namespace Phobos.Components;
 
@@ -23,12 +24,14 @@ public class Stuck
     public const float TeleportDelay = 3f + PathRetryDelay;
     public const float FailedDelay = 3f + PathRetryDelay;
 
+    public readonly TimePacing Pacing = new(0.1f);
+    
+    public StuckState State = StuckState.None;
     public Vector3 LastPosition;
     public float LastSpeed;
-    public float Timer;
     public float LastUpdate; 
-    public StuckState State = StuckState.None;
-
+    public float Timer;
+    
     public override string ToString()
     {
         return $"Stuck(State: {State} timer: {Timer} last speed: {LastSpeed} last position: {LastPosition})";
