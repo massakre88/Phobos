@@ -16,6 +16,7 @@ public class LocationSystemTelemetry : MonoBehaviour
     private readonly Color _mediumCongestionColor = new(0.8f, 0.8f, 0.2f, 0.7f);
     private readonly Color _highCongestionColor = new(0.8f, 0.2f, 0.2f, 0.7f);
     private readonly Color _agentColor = Color.cyan;
+    private readonly Color _agentLeaderColor = Color.magenta;
     private readonly Color _gridLineColor = new(0.3f, 0.3f, 0.3f, 0.8f);
 
     private const int LowCongestionThreshold = 2;
@@ -118,7 +119,9 @@ public class LocationSystemTelemetry : MonoBehaviour
             var screenX = gridRect.x + normX * displayWidth;
             var screenY = gridRect.y + (1f - normY) * displayHeight; // Flip Y
 
-            DrawCircle(new Vector2(screenX, screenY), AgentDotRadius, _agentColor);
+            var color = agent.IsLeader ? _agentLeaderColor : _agentColor;
+
+            DrawCircle(new Vector2(screenX, screenY), AgentDotRadius, color);
         }
     }
 

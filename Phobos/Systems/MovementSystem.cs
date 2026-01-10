@@ -331,6 +331,15 @@ public class MovementSystem
 
     private class StuckRemediation(MovementSystem movementSystem, List<Player> humanPlayers)
     {
+        // Thresholds
+        private const float MaxMoveSpeed = 5f; // Maximum bot movement speed in m/s
+        private const float StuckThresholdMultiplier = 0.25f; // Bot moving at less than 50% expected speed is stuck
+        private const float VaultAttemptDelay = 1.5f;
+        private const float JumpAttemptDelay = 1.5f + VaultAttemptDelay;
+        private const float PathRetryDelay = 3f + JumpAttemptDelay;
+        private const float TeleportDelay = 3f + PathRetryDelay;
+        private const float FailedDelay = 3f + PathRetryDelay;
+        
         private static readonly LayerMask LayerMaskVisCheck = 0b0000_00000_0000_0001_1000_0000_0000;
 
         private static readonly EBodyPartColliderType[] VisCheckBodyParts =
@@ -382,9 +391,9 @@ public class MovementSystem
             }
 
             // Calculate expected movement distance based on current speed setting
-            var expectedSpeed = Stuck.MaxMoveSpeed * moveSpeed;
+            var expectedSpeed = MaxMoveSpeed * moveSpeed;
             var expectedDistance = expectedSpeed * deltaTime;
-            var stuckThreshold = expectedDistance * Stuck.StuckThresholdMultiplier;
+            var stuckThreshold = expectedDistance * StuckThresholdMultiplier;
 
             // Check if bot has moved significantly
             var moveVector = currentPos - lastPos;
@@ -405,29 +414,29 @@ public class MovementSystem
             switch (stuck.State)
             {
                 // Apply remediation based on stuck duration
-                case StuckState.None when stuck.Timer >= Stuck.VaultAttemptDelay:
+                case StuckState.None when stuck.Timer >= VaultAttemptDelay:
                     DebugLog.Write($"{agent} is stuck, attempting to vault.");
                     stuck.State = StuckState.Vaulting;
                     agent.Player.MovementContext?.TryVaulting();
                     break;
-                case StuckState.Vaulting when stuck.Timer >= Stuck.JumpAttemptDelay:
+                case StuckState.Vaulting when stuck.Timer >= JumpAttemptDelay:
                     DebugLog.Write($"{agent} is stuck, attempting to jump.");
                     stuck.State = StuckState.Jumping;
                     agent.Player.MovementContext?.TryJump();
                     break;
-                case StuckState.Jumping when stuck.Timer >= Stuck.PathRetryDelay:
+                case StuckState.Jumping when stuck.Timer >= PathRetryDelay:
                 {
                     DebugLog.Write($"{agent} is stuck, attempting to recalculate path.");
                     stuck.State = StuckState.Retrying;
                     movementSystem.MoveRetry(agent, agent.Movement.Target);
                     break;
                 }
-                case StuckState.Retrying when stuck.Timer >= Stuck.TeleportDelay:
+                case StuckState.Retrying when stuck.Timer >= TeleportDelay:
                     DebugLog.Write($"{agent} is stuck, attempting to teleport.");
                     stuck.State = StuckState.Teleport;
                     AttemptTeleport(agent);
                     break;
-                case StuckState.Teleport when stuck.Timer >= Stuck.FailedDelay:
+                case StuckState.Teleport when stuck.Timer >= FailedDelay:
                     DebugLog.Write($"{agent} is stuck, giving up.");
                     stuck.State = StuckState.Failed;
                     ResetPath(agent.Movement);

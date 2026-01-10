@@ -49,7 +49,6 @@ public class LocationSystem
     private readonly Vector2 _worldMax;
 
     private readonly Vector2[,] _advectionField;
-    private readonly float _advectionFactor;
 
     private readonly SortedSet<Vector2Int> _coordsByCongestion;
     private readonly List<Vector2Int> _tempCoordsBuffer = [];
@@ -215,7 +214,6 @@ public class LocationSystem
         DebugLog.Write($"Collected {_hotSpots.Length} hotspots");
 
         // Advection
-        _advectionFactor = Random.Range(0, Plugin.RaidAdvectionRandomness.Value);
         _advectionField = new Vector2[_gridSize.x, _gridSize.y];
         CalculateAdvectionField();
     }
@@ -243,7 +241,7 @@ public class LocationSystem
                     // Accumulate the advection
                     _advectionField[x, y] += metric * ((Vector2)(hotSpotCoords - cellCoords)).normalized;
                 }
-                
+
                 DebugLog.Write($"Cell {cellCoords} advection {_advectionField[x, y]} length {_advectionField[x, y].magnitude}");
             }
         }
@@ -257,8 +255,7 @@ public class LocationSystem
         DebugLog.Write($"Requesting location around {requestCoords} | {worldPos} with previous coords {previousCoords}");
 
         _tempCoordsBuffer.Clear();
-        var preferredDirection = Vector2.zero;
-        var advectionScaling = (1f - _advectionFactor) * Plugin.RaidAdvection.Value;
+        var vacancyVector = Vector2.zero;
 
         // First pass: determine preferential direction
         for (var dx = -1; dx <= 1; dx++)
@@ -278,16 +275,21 @@ public class LocationSystem
                 if (!cell.HasLocations)
                     continue;
 
-                var vacancyVector = -1 * cell.Congestion * ((Vector2)direction).normalized;
-                var momentumVector = (Vector2)(requestCoords - previousCoords);
-                momentumVector.Normalize();
-                var advectionVector = advectionScaling * _advectionField[coords.x, coords.y];
-                var randomization = Random.insideUnitCircle;
-
-                preferredDirection += vacancyVector + momentumVector + advectionVector + randomization;
+                vacancyVector += -1 * cell.Congestion * ((Vector2)direction).normalized;
                 _tempCoordsBuffer.Add(direction);
             }
         }
+
+        var randomization = Random.insideUnitCircle;
+        var advectionVector = _advectionField[requestCoords.x, requestCoords.y];
+        var momentumVector = (Vector2)(requestCoords - previousCoords);
+        momentumVector.Normalize();
+
+        var preferredDirection = vacancyVector + momentumVector + advectionVector + randomization;
+
+        DebugLog.Write(
+            $"Preferred direction: {preferredDirection} vacancy: {vacancyVector} mom: {momentumVector} adv: {advectionVector} rand: {randomization}"
+        );
 
         if (preferredDirection == Vector2.zero)
         {
@@ -307,7 +309,7 @@ public class LocationSystem
             var candidateDirection = _tempCoordsBuffer[i];
             var angle = Vector2.Angle(candidateDirection, preferredDirection);
 
-            DebugLog.Write($"Direction {candidateDirection} -> {preferredDirection} angle: {angle}");
+            DebugLog.Write($"Direction {preferredDirection} -> {candidateDirection} angle: {angle}");
 
             if (angle >= bestAngle) continue;
 
