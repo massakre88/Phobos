@@ -333,7 +333,7 @@ public class MovementSystem
     {
         // Thresholds
         private const float MaxMoveSpeed = 5f; // Maximum bot movement speed in m/s
-        private const float StuckThresholdMultiplier = 0.25f; // Bot moving at less than 50% expected speed is stuck
+        private const float StuckThresholdMultiplier = 0.5f; // Bot moving at less than 50% expected speed is stuck
         private const float VaultAttemptDelay = 1.5f;
         private const float JumpAttemptDelay = 1.5f + VaultAttemptDelay;
         private const float PathRetryDelay = 3f + JumpAttemptDelay;
