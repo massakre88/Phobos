@@ -24,7 +24,7 @@ public class Movement
         [MethodImpl(MethodImplOptions.AggressiveInlining)]
         get => Path != null;
     }
-    
+
     public readonly TimePacing VoxelUpdatePacing = new(0.25f);
 
     public override string ToString()

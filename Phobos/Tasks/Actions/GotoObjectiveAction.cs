@@ -92,6 +92,7 @@ public class GotoObjectiveAction(AgentData dataset, MovementSystem movementSyste
             }
         }
 
+        movementSystem.ResetGait(entity);
         movementSystem.MoveToByPath(entity, objective.Location.Position);
     }
 }

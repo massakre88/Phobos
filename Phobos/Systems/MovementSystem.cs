@@ -87,6 +87,15 @@ public class MovementSystem
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public void ResetGait(Agent agent)
+    {
+        agent.Movement.Pose = 1f;
+        agent.Movement.Speed = 1f;
+        agent.Movement.Prone = false;
+        agent.Movement.Sprint = false;
+    }
+
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void MoveRetry(Agent agent, Vector3 destination)
     {
         ResetPath(agent.Movement);

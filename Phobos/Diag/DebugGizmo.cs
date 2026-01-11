@@ -38,7 +38,7 @@ public static class DebugGizmos
     
     private static readonly List<GameObject> DrawnGizmos = new();
 
-    public static GameObject Sphere(Vector3 position, float size, Color color, bool temporary = false, float expiretime = 1f)
+    public static GameObject Sphere(Vector3 position, float size, Color color, float expiretime = 1f)
     {
         var sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
         sphere.GetComponent<Renderer>().material.color = color;
@@ -79,12 +79,12 @@ public static class DebugGizmos
 
     public static GameObject Sphere(Vector3 position, float size, float expiretime = 1f)
     {
-        return Sphere(position, size, RandomColor, expiretime > 0, expiretime);
+        return Sphere(position, size, RandomColor, expiretime);
     }
 
     public static GameObject Sphere(Vector3 position, float expiretime = 1f)
     {
-        return Sphere(position, 0.25f, RandomColor, expiretime > 0, expiretime);
+        return Sphere(position, 0.25f, RandomColor, expiretime);
     }
 
     public static GameObject Line(Vector3 startPoint, Vector3 endPoint, Color color, float lineWidth = 0.05f, float expiretime = 1f, bool taperLine = false)
@@ -184,7 +184,7 @@ public static class DebugGizmos
         {
             var pointA = t;
             pointA.y += raisePoints;
-            var sphere = Sphere(pointA, size, color, expireTime > 0, expireTime);
+            var sphere = Sphere(pointA, size, color, expireTime);
             list.Add(sphere);
         }
     }
@@ -207,7 +207,7 @@ public static class DebugGizmos
             var color = RandomColor;
 
             var sphereSize = Mathf.Clamp(lineSize * SphereMulti, MinSphere, MaxSphere);
-            var sphere = Sphere(pointA, sphereSize, color, expireTime > 0, expireTime);
+            var sphere = Sphere(pointA, sphereSize, color, expireTime);
             list.Add(sphere);
 
             DrawLinesToPoint(list, pointA, color, lineSize, expireTime, raisePoints, points);
@@ -226,7 +226,7 @@ public static class DebugGizmos
             pointA.y += raisePoints;
 
             var sphereSize = Mathf.Clamp(lineSize * SphereMulti, MinSphere, MaxSphere);
-            var sphere = Sphere(pointA, sphereSize, color, expireTime > 0, expireTime);
+            var sphere = Sphere(pointA, sphereSize, color, expireTime);
             list.Add(sphere);
 
             DrawLinesToPoint(list, pointA, color, lineSize, expireTime, raisePoints, points);

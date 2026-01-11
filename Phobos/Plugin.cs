@@ -28,9 +28,6 @@ public class Plugin : BaseUnityPlugin
     public static ConfigEntry<float> HotspotRadius;
     public static ConfigEntry<float> HotSpotRadiusDecay;
     
-    public static ConfigEntry<float> RaidAdvection;
-    public static ConfigEntry<float> RaidAdvectionRandomness;
-    
     private static ConfigEntry<bool> _loggingEnabled;
     
     private void Awake()
@@ -113,18 +110,6 @@ public class Plugin : BaseUnityPlugin
         ));
         HotSpotRadiusDecay.SettingChanged += HotspotParametersChanged;
         
-        RaidAdvection = Config.Bind(general, "Advection", 0f, new ConfigDescription(
-            "",
-            new AcceptableValueRange<float>(-10f, 10f),
-            new ConfigurationManagerAttributes { Order = 2 }
-        ));
-        
-        RaidAdvectionRandomness = Config.Bind(general, "Advection Randomness", 1f, new ConfigDescription(
-            "",
-            new AcceptableValueRange<float>(0f, 1f),
-            new ConfigurationManagerAttributes { Order = 1 }
-        ));
-
         /*
          * Deboog
          */

@@ -1,4 +1,15 @@
-﻿# Formation Movement
+﻿# Location Covers
+AICoversData.GetIndexes combined with AICoversData.GetVoxelesExtended should get us the voxels around a world pos.
+
+AICoversData itself is accessible on BotsController.CoversData_1
+
+# GuardReposition
+Grab a random GroupPoint near the location.
+
+# GuardWatch
+Will either look at the objective, a visible door or in the opposite of the wall direction in the GroupPoint with a gentle random sweeping sway in an ellipse that 30 deg tall and 60 deg wide.
+
+# Formation Movement
 We now have a squad leader, so we can anchor everything to this.
 
 * Only the squad leader gets the objectives. Make sure to add a condition to the score that prevents other bots getting it.
