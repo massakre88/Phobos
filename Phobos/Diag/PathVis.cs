@@ -1,4 +1,5 @@
 ﻿using UnityEngine;
+
 namespace Phobos.Diag;
 
 // ReSharper disable UnusedType.Global
@@ -14,17 +15,17 @@ public class PathVis
         _lineRenderer.material = new Material(Shader.Find("Sprites/Default"));
     }
 
-    public void Set(Vector3[] data, float thickness = 0.05f)
+    public void Set(Vector3[] data, float thickness = 0.05f, bool knobs = false)
     {
-        Set(data, Color.red, Color.green, thickness);
+        Set(data, Color.red, Color.green, thickness, knobs: knobs);
     }
 
-    public void Set(Vector3[] data, Color color, float thickness = 0.05f)
+    public void Set(Vector3[] data, Color color, float thickness = 0.05f, bool knobs = false)
     {
-        Set(data, color, color, thickness);
+        Set(data, color, color, thickness, knobs);
     }
 
-    public void Set(Vector3[] data, Color startColor, Color endColor, float thickness = 0.05f)
+    public void Set(Vector3[] data, Color startColor, Color endColor, float thickness = 0.05f, bool knobs = false)
     {
         if (data == null || data.Length == 0)
         {
@@ -39,20 +40,29 @@ public class PathVis
 
         _lineRenderer.positionCount = data.Length;
         _lineRenderer.SetPositions(data);
+
+        if (knobs)
+        {
+            for (var i = 0; i < data.Length; i++)
+            {
+                var point = data[i];
+                DebugGizmos.Sphere(point, 0.35f, color: Color.blue, expiretime: 0f);
+            }
+        }
     }
 
     public static void Show(Vector3[] data, float thickness = 0.05f)
     {
         var vis = new PathVis();
-        vis.Set(data, Color.red, Color.green, thickness);
+        vis.Set(data, Color.red, Color.green, thickness, knobs: true);
     }
-    
+
     public static void Show(Vector3[] data, Color color, float thickness = 0.05f)
     {
         var vis = new PathVis();
-        vis.Set(data, color, thickness);
+        vis.Set(data, color, thickness, knobs: true);
     }
-    
+
     public void Clear()
     {
         if (_lineRenderer != null)

@@ -238,15 +238,17 @@ public class MovementSystem
         }
         else
         {
-            if (movement.Status == NavMeshPathStatus.PathPartial)
+            var pathEndInProximity = (movement.Path[movement.CurrentCorner] - bot.Position).sqrMagnitude <= TargetReachedDistSqr;
+            
+            // If the path is partial AND doesn't reach far enough, recalculate
+            if (movement.Status == NavMeshPathStatus.PathPartial && !pathEndInProximity)
             {
                 MoveRetry(agent, movement.Target);
                 return;
             }
 
             // Sometimes the last movement corner might not be exactly on the actual target. Add an extra check to short circuit.
-            if ((movement.Target - bot.Position).sqrMagnitude <= TargetReachedDistSqr
-                || (movement.Path[movement.CurrentCorner] - bot.Position).sqrMagnitude <= TargetReachedDistSqr)
+            if ((movement.Target - bot.Position).sqrMagnitude <= TargetReachedDistSqr || pathEndInProximity)
             {
                 ResetPath(movement);
                 return;
@@ -261,6 +263,9 @@ public class MovementSystem
 
         // A spring to pull the bot back to the path if it veers off
         var pathDeviationSpring = closestPointOnPath - bot.Position;
+
+        // We can't move vertically, don't bother compensating for this
+        pathDeviationSpring.y = 0;
 
         // Steering
         moveVector.Normalize();
