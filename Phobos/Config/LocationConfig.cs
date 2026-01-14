@@ -126,10 +126,10 @@ public class LocationConfig
                 "Shoreline", new MapZone(
                     new(),
                     [
-                        new CustomZone(new Vector2(-250, -100), new Range(500, 600), new Range(-0.25f, 0.25f)),
+                        new CustomZone(new Vector2(-250, -100), new Range(500, 600), new Range(-0.25f, 0.5f)),
                         new CustomZone(new Vector2(160, -270), new Range(500, 600), new Range(0f, 0.25f)),
-                        new CustomZone(new Vector2(-345, 455), new Range(500, 600), new Range(-0.25f, 0.25f)),
-                        new CustomZone(new Vector2(-925, 275), new Range(500, 600), new Range(-0.25f, 0.25f))
+                        new CustomZone(new Vector2(-345, 455), new Range(500, 600), new Range(-0.25f, 0.5f)),
+                        new CustomZone(new Vector2(-925, 275), new Range(500, 600), new Range(-0.25f, 0.5f))
                     ]
                 )
             },
@@ -137,9 +137,9 @@ public class LocationConfig
             {
                 "Woods", new MapZone([], [
                     new CustomZone(new Vector2(-550, -200), new Range(500, 600), new Range(-0.25f, 0.25f)), // Old Sawmill
-                    new CustomZone(new Vector2(0, 0), new Range(700, 800), new Range(-0.25f, 0.5f)), // New Sawmill
+                    new CustomZone(new Vector2(0, 0), new Range(700, 800), new Range(-0.375f, 0.75f)), // New Sawmill
                     new CustomZone(new Vector2(400, 250), new Range(600, 700), new Range(-0.25f, 0.25f)), // Outskirts
-                    new CustomZone(new Vector2(135, -750), new Range(800, 1000), new Range(-0.25f, 0.5f)) // Friendship Bridge
+                    new CustomZone(new Vector2(135, -750), new Range(800, 1000), new Range(-0.375f, 0.75f)) // Friendship Bridge
                 ])
             },
         };

@@ -360,10 +360,7 @@ public class AssignmentSystem
 
                 // Direction from source to target in cell coordinates
                 var direction = new Vector2(dx, dy);
-                
-                // The force decays as exponents of 2. At distance 1 -> 1, 2 -> 2, 3 -> 4
-                var chebyshev = Mathf.Max(Mathf.Abs(dx), Mathf.Abs(dy));
-                var distanceNorm = 1 << (chebyshev - 1);
+                var distanceNorm = direction.sqrMagnitude;
                 
                 // Normalize direction and apply inverse squared distance falloff
                 var force = direction.normalized * maxForce / distanceNorm;
