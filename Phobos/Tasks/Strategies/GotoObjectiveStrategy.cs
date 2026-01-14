@@ -55,11 +55,11 @@ public class GotoObjectiveStrategy(SquadData squadData, LocationSystem locationS
 
             if (squad.Objective.Location != null)
             {
-                locationSystem.Return(squad.Objective.Location);
+                locationSystem.Return(squad);
                 DebugLog.Write($"{squad} returned objective {squad.Objective.Location}");
             }
             
-            var newLocation = locationSystem.RequestFar();
+            var newLocation = locationSystem.RequestNear(squad, squad.Leader.Bot.Position, squad.Objective.LocationPrevious);
 
             if (newLocation == null)
             {
@@ -72,5 +72,12 @@ public class GotoObjectiveStrategy(SquadData squadData, LocationSystem locationS
                 
             DebugLog.Write($"{squad} assigned objective {squad.Objective.Location}");
         }
+    }
+
+    public override void Deactivate(Entity entity)
+    {
+        // Ensure that we return any assignments
+        locationSystem.Return(entity);
+        base.Deactivate(entity);
     }
 }

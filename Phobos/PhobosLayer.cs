@@ -121,11 +121,25 @@ public class PhobosLayer : CustomLayer
         var pose = BotOwner.GetPlayer.MovementContext.PoseLevel;
         var destSpeed = BotOwner.Mover?.DestMoveSpeed;
         var actualSpeed = _agent.Player.MovementContext.CharacterMovementSpeed;
+
+        var distMove = 0f;
+
+        if (_agent.Movement.IsValid)
+        {
+            distMove = (_agent.Movement.Target - _agent.Position).sqrMagnitude;
+        }
+
+        var distObj = 0f;
+
+        if (_agent.Objective.Location != null)
+        {
+            distObj = (_agent.Objective.Location.Position - _agent.Position).sqrMagnitude;
+        }
         
         sb.AppendLine($"{_agent} Task: {_agent.TaskAssignment.Task}");
-        sb.AppendLine(_agent.Movement.ToString());
+        sb.AppendLine($"{_agent.Movement} dist {distMove}");
         sb.AppendLine(_agent.Stuck.ToString());
-        sb.AppendLine($"{_agent.Objective}");
+        sb.AppendLine($"{_agent.Objective} dist {distObj}");
         sb.AppendLine("*** Generic ***");
         sb.AppendLine($"HasEnemy: {BotOwner.Memory.HaveEnemy} UnderFire: {BotOwner.Memory.IsUnderFire}");
         sb.AppendLine($"Pose: {pose} DestSpeed: {destSpeed} ActualSpeed: {actualSpeed}");

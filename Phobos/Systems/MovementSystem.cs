@@ -234,6 +234,7 @@ public class MovementSystem
             // If the path doesn't reach far enough, retry again. Don't rely on unity's path status value here.
             if ((movement.Target - movement.Path[movement.CurrentCorner]).sqrMagnitude > TargetReachedDistSqr)
             {
+                DebugLog.Write($"{agent} path appears partial, the last corner doesn't reach far enough. Retrying.");
                 movement.Status =  NavMeshPathStatus.PathPartial;
                 MoveRetry(agent, movement.Target);
                 return;
@@ -242,6 +243,7 @@ public class MovementSystem
             // We retry pathing above if the last corner doesn't reach far enough, here just check whether we reached that corner.
             if ((movement.Path[movement.CurrentCorner] - agent.Player.Position).sqrMagnitude <= TargetReachedDistSqr)
             {
+                DebugLog.Write($"{agent} destination reached");
                 ResetPath(agent);
                 return;
             }

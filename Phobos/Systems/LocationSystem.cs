@@ -5,6 +5,7 @@ using EFT;
 using EFT.Interactive;
 using Phobos.Config;
 using Phobos.Diag;
+using Phobos.Entities;
 using Phobos.Navigation;
 using UnityEngine;
 using UnityEngine.AI;
@@ -37,8 +38,9 @@ public class LocationSystem
     private readonly Vector2 _worldMin;
     private readonly Vector2 _worldMax;
 
-    private readonly Queue<Location> _locationQueue;
-    
+    private readonly Queue<Vector2Int> _validCellQueue;
+    private readonly Dictionary<Entity, Vector2Int> _assignments;
+
     private readonly List<Vector2Int> _tempCoordsBuffer = [];
 
     private readonly BotsController _botsController;
@@ -94,9 +96,8 @@ public class LocationSystem
                 cellId++;
             }
         }
-        
+
         // Add the builtin locations
-        _locationQueue = new Queue<Location>();
         var locations = CollectLocations();
         Shuffle(locations);
 
@@ -105,10 +106,10 @@ public class LocationSystem
             var location = locations[i];
             var coords = WorldToCell(location.Position);
             _cells[coords.x, coords.y].Locations.Add(location);
-            _locationQueue.Enqueue(location);
         }
 
         // Loop through all the cells and try to populate them with synthetic locations if there aren't any builtin ones
+        _validCellQueue = new Queue<Vector2Int>();
         for (var x = 0; x < _gridSize.x; x++)
         {
             for (var y = 0; y < _gridSize.y; y++)
@@ -119,6 +120,7 @@ public class LocationSystem
                 // If we already have builting locations, bail out
                 if (cell.HasLocations)
                 {
+                    _validCellQueue.Enqueue(cellCoords);
                     continue;
                 }
 
@@ -139,6 +141,8 @@ public class LocationSystem
             }
         }
 
+        _assignments = new Dictionary<Entity, Vector2Int>();
+        
         // Zones
         _zones = [];
         _advectionField = new Vector2[_gridSize.x, _gridSize.y];
@@ -149,7 +153,7 @@ public class LocationSystem
         DebugLog.Write($"Location grid world size: {worldWidth:F0}x{worldHeight:F0} search radius: {searchRadius}");
     }
 
-    public Location RequestNear(Vector3 worldPos, Location previous)
+    public Location RequestNear(Entity entity, Vector3 worldPos, Location previous)
     {
         var requestCoords = WorldToCell(worldPos);
         var previousCoords = previous == null ? WorldToCell(worldPos) : WorldToCell(previous.Position);
@@ -196,7 +200,7 @@ public class LocationSystem
             DebugLog.Write("Zero vector preferred direction, trying the current cell, and failing that the map-wide least congested cell");
             // We can't go to any neighboring cell for some reason, grab something from the current cell, and if that fails too, search map-wide. 
             var currentCell = _cells[requestCoords.x, requestCoords.y];
-            return currentCell.HasLocations ? AssignLocation(requestCoords) : RequestFar();
+            return currentCell.HasLocations ? AssignLocation(entity, requestCoords) : RequestFar(entity);
         }
 
         prefDirection.Normalize();
@@ -218,20 +222,25 @@ public class LocationSystem
 
         DebugLog.Write($"Best pick is {bestNeighbor} with angle: {bestAngle}");
 
-        return bestNeighbor.HasValue ? AssignLocation(bestNeighbor.Value) : RequestFar();
+        return bestNeighbor.HasValue ? AssignLocation(entity, bestNeighbor.Value) : RequestFar(entity);
     }
 
-    public void Return(Location location)
+    public void Return(Entity entity)
     {
-        var coords = WorldToCell(location.Position);
+        if (!_assignments.Remove(entity, out var coords))
+        {
+            return;
+        }
+
         ref var cell = ref _cells[coords.x, coords.y];
 
         cell.Congestion--;
+        PropagateForce(coords, -1f);
 
         if (cell.Congestion >= 0) return;
 
         cell.Congestion = 0;
-        DebugLog.Write($"Returning {location} to the pool resulted in negative congestion");
+        DebugLog.Write($"Returning the assignment for {entity} to the pool resulted in negative congestion");
     }
 
     public void CalculateZones()
@@ -307,27 +316,58 @@ public class LocationSystem
                 }
             }
         }
+
+        // Propagate the forces for each assignment
+        foreach (var coords in _assignments.Values)
+        {
+            PropagateForce(coords, 1f);
+        }
     }
 
-    private Location RequestFar()
+    private Location RequestFar(Entity entity)
     {
-        var pick = _locationQueue.Dequeue();
-        _locationQueue.Enqueue(pick);
-       
-        var coords = WorldToCell(pick.Position);
-        ref var cell = ref _cells[coords.x, coords.y];
-        cell.Congestion++;
-        
-        DebugLog.Write($"Requesting {pick} in far cell {coords}");
-       
-        return pick;
+        var pick = _validCellQueue.Dequeue();
+        _validCellQueue.Enqueue(pick);
+        var location = AssignLocation(entity, pick);
+        DebugLog.Write($"Requesting {location} in far cell {pick}");
+        return location;
     }
 
-    private Location AssignLocation(Vector2Int coords)
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private Location AssignLocation(Entity entity, Vector2Int coords)
     {
         ref var cell = ref _cells[coords.x, coords.y];
-        cell.Congestion++;
+        cell.Congestion += 1;
+        PropagateForce(coords, 1f);
+        _assignments[entity] = coords;
         return cell.Locations[Random.Range(0, cell.Locations.Count)];
+    }
+
+    private void PropagateForce(Vector2Int sourceCoords, float maxForce, int range = 3)
+    {
+        for (var dx = -range; dx <= range; dx++)
+        {
+            for (var dy = -range; dy <= range; dy++)
+            {
+                // Skip source cell
+                if (dx == 0 && dy == 0) continue;
+
+                var targetCoords = new Vector2Int(sourceCoords.x + dx, sourceCoords.y + dy);
+
+                // Skip invalid cells
+                if (!IsValidCell(targetCoords)) continue;
+
+                // Direction from source to target in cell coordinates
+                var direction = new Vector2(dx, dy);
+                var distanceSqr = direction.sqrMagnitude;
+
+                // Normalize direction and apply inverse squared distance falloff
+                var force = direction.normalized * maxForce / distanceSqr;
+
+                // Accumulate into advection field
+                _advectionField[targetCoords.x, targetCoords.y] += force;
+            }
+        }
     }
 
     private bool PopulateCell(Cell cell, Vector2Int cellCoords, Vector3 centerPoint)
@@ -347,7 +387,7 @@ public class LocationSystem
 
                 var candidatePoint = new Vector3(centerPoint.x + xOffset, centerPoint.y, centerPoint.z + zOffset);
 
-                if(!NavMesh.SamplePosition(candidatePoint, out var hit, _cellSubSize, NavMesh.AllAreas))
+                if (!NavMesh.SamplePosition(candidatePoint, out var hit, _cellSubSize, NavMesh.AllAreas))
                     continue;
 
                 if (WorldToCell(hit.position) != cellCoords)
@@ -355,7 +395,7 @@ public class LocationSystem
 
                 if (!CheckPathing(cellCoords, hit.position))
                     continue;
-                
+
                 cell.Locations.Add(BuildSyntheticLocation(hit.position));
                 pointsFound++;
             }
