@@ -1,12 +1,9 @@
 ﻿using Phobos.Components;
-using Phobos.Components.Squad;
 using Phobos.Data;
 using Phobos.Diag;
 using Phobos.Entities;
-using Phobos.Navigation;
 using Phobos.Systems;
 using Phobos.Tasks.Actions;
-using UnityEngine;
 
 namespace Phobos.Tasks.Strategies;
 
@@ -47,7 +44,7 @@ public class GotoObjectiveStrategy(SquadData squadData, LocationSystem locationS
                 }
 
                 if (agent.Objective.Status == ObjectiveStatus.Failed
-                    || (agent.Objective.Location.Position - agent.Bot.Position).sqrMagnitude <= GotoObjectiveAction.ObjectiveEpsDistSqr)
+                    || (agent.Objective.Location.Position - agent.Player.Position).sqrMagnitude <= GotoObjectiveAction.ObjectiveEpsDistSqr)
                 {
                     finishedCount++;
                 }
@@ -62,7 +59,7 @@ public class GotoObjectiveStrategy(SquadData squadData, LocationSystem locationS
                 DebugLog.Write($"{squad} returned objective {squad.Objective.Location}");
             }
             
-            var newLocation = locationSystem.RequestNear(squad.Leader.Bot.Position, squad.Objective.LocationPrevious);
+            var newLocation = locationSystem.RequestFar();
 
             if (newLocation == null)
             {

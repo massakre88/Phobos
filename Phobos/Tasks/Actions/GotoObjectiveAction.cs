@@ -1,5 +1,6 @@
 ﻿using Phobos.Components;
 using Phobos.Data;
+using Phobos.Diag;
 using Phobos.Entities;
 using Phobos.Systems;
 using UnityEngine;
@@ -55,6 +56,7 @@ public class GotoObjectiveAction(AgentData dataset, MovementSystem movementSyste
 
             if (objective.Status == ObjectiveStatus.Suspended)
             {
+                DebugLog.Write($"{agent} objective {agent.Objective.Location} is suspended, submitting move order");
                 objective.Status = ObjectiveStatus.Active;
                 movementSystem.MoveToByPath(agent, objective.Location.Position);
                 return;
@@ -64,6 +66,7 @@ public class GotoObjectiveAction(AgentData dataset, MovementSystem movementSyste
             if (agent.Movement.Status == NavMeshPathStatus.PathInvalid &&
                 (objective.Location.Position - agent.Position).sqrMagnitude > ObjectiveEpsDistSqr)
             {
+                DebugLog.Write($"{agent} objective {agent.Objective.Location} is failed");
                 objective.Status = ObjectiveStatus.Failed;
             }
         }

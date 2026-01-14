@@ -89,15 +89,6 @@ public class MovementSystem
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void ResetGait(Agent agent)
-    {
-        agent.Movement.Pose = 1f;
-        agent.Movement.Speed = 1f;
-        agent.Movement.Prone = false;
-        agent.Movement.Sprint = false;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private void MoveRetry(Agent agent, Vector3 destination)
     {
         ResetPath(agent);
@@ -107,7 +98,7 @@ public class MovementSystem
             agent.Movement.Status = NavMeshPathStatus.PathInvalid;
             return;
         }
-        
+
         ScheduleMoveJob(agent, destination);
         agent.Movement.Retry++;
     }
@@ -247,7 +238,7 @@ public class MovementSystem
                 ResetPath(agent);
                 return;
             }
-            
+
             // If the path is partial AND doesn't reach far enough, recalculate
             if (movement.Status == NavMeshPathStatus.PathPartial)
             {
@@ -256,24 +247,34 @@ public class MovementSystem
             }
         }
 
+        // Calculate a deviation from the path in 2d space to avoid cases where the deviation pulls the agent backwards due to terrain geometry.
+        var agentPos2d = new Vector2(agent.Position.x, agent.Position.z);
         var closestPointOnPath = PathHelper.ClosestPointOnLine(
-            movement.Path[Math.Max(0, movement.CurrentCorner - 1)],
-            movement.Path[movement.CurrentCorner],
-            agent.Position
+            movement.Path[Math.Max(0, movement.CurrentCorner - 1)].ToVector2(),
+            movement.Path[movement.CurrentCorner].ToVector2(),
+            agentPos2d
         );
 
         // A spring to pull the bot back to the path if it veers off
-        var pathDeviationSpring = closestPointOnPath - agent.Position;
+        var pathDeviationSpring = (closestPointOnPath - agentPos2d).ToVector3();
 
         // We can't move vertically, don't bother compensating for this
-        pathDeviationSpring.y = 0;
+        // pathDeviationSpring.y = 0;
+
+        DebugGizmos.Line(agent.Position, agent.Position + moveVector, color: Color.blue, expiretime: 0.15f);
 
         // Steering
         moveVector.Normalize();
+        DebugGizmos.Line(agent.Position, agent.Position + moveVector, color: Color.red, expiretime: 0.15f);
         moveVector += pathDeviationSpring;
         moveVector.Normalize();
-        
-        DebugGizmos.Line(agent.Position, agent.Position + moveVector, color: Color.red, expiretime:0.5f);
+
+        DebugGizmos.Line(agent.Position, agent.Position + moveVector, color: Color.green, expiretime: 0.15f);
+
+        if (pathDeviationSpring.magnitude > 0.01f)
+        {
+            DebugGizmos.Line(agent.Position, agent.Position + pathDeviationSpring, color: Color.magenta, expiretime: 0.15f);
+        }
 
         var moveDir = CalcMoveDirection(moveVector, player.Rotation);
         player.CharacterController.SetSteerDirection(moveVector);
@@ -316,6 +317,15 @@ public class MovementSystem
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    private static void ResetGait(Agent agent)
+    {
+        agent.Movement.Pose = 1f;
+        agent.Movement.Speed = 1f;
+        agent.Movement.Prone = false;
+        agent.Movement.Sprint = false;
+    }
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void ResetPath(Agent agent)
     {
         agent.Movement.Path = null;
@@ -356,7 +366,7 @@ public class MovementSystem
         private const float PathRetryDelay = 3f + JumpAttemptDelay;
         private const float TeleportDelay = 3f + PathRetryDelay;
         private const float FailedDelay = 3f + PathRetryDelay;
-        
+
         private static readonly LayerMask LayerMaskVisCheck = 0b0000_00000_0000_0001_1000_0000_0000;
 
         private static readonly EBodyPartColliderType[] VisCheckBodyParts =
@@ -372,10 +382,10 @@ public class MovementSystem
         public void Update(Agent agent)
         {
             var stuck = agent.Stuck;
-            
+
             if (stuck.Pacing.Blocked())
                 return;
-            
+
             // Update timing
             var deltaTime = Time.time - stuck.LastUpdate;
             stuck.LastUpdate = Time.time;
@@ -384,7 +394,7 @@ public class MovementSystem
             var currentPos = agent.Position;
             var lastPos = stuck.LastPosition;
             stuck.LastPosition = currentPos;
-            
+
             // Apply an asymmetric speed buffering:
             // If the current speed is slower than the last observed speed, use the current speed to avoid overestimating the required distance
             // If the current speed is faster than the last observed speed, use an exponentially weighted moving average with alpha=0.9 to

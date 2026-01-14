@@ -339,7 +339,7 @@ public class LocationSystem
         }
     }
 
-    private Location RequestFar()
+    public Location RequestFar()
     {
         var pick = _coordsByCongestion.Min;
         DebugLog.Write($"Requesting far cell {pick}");
