@@ -37,7 +37,8 @@ public class LocationSystem
     private readonly Vector2 _worldMin;
     private readonly Vector2 _worldMax;
 
-    private readonly SortedSet<Vector2Int> _coordsByCongestion;
+    private readonly Queue<Location> _locationQueue;
+    
     private readonly List<Vector2Int> _tempCoordsBuffer = [];
 
     private readonly BotsController _botsController;
@@ -83,28 +84,19 @@ public class LocationSystem
 
         var searchRadius = Math.Max(worldWidth, worldHeight) / 2f;
 
-        // Cell initialization. We want to randomize the ids assigned to cells, so that their id based ordering is random.
-        // The ids will be later used by the sorted set to tie-break, and we don't want deterministic ordering.
+        // Cell initialization
+        var cellId = 0;
         for (var x = 0; x < cols; x++)
         {
             for (var y = 0; y < rows; y++)
             {
-                _tempCoordsBuffer.Add(new Vector2Int(x, y));
+                _cells[x, y] = new Cell(cellId);
+                cellId++;
             }
         }
-
-        // Shuffle the coords here so that they get assigned to different ids each raid
-        Shuffle(_tempCoordsBuffer);
-
-        for (var i = 0; i < _tempCoordsBuffer.Count; i++)
-        {
-            var coords = _tempCoordsBuffer[i];
-            _cells[coords.x, coords.y] = new Cell(i);
-        }
-
-        _tempCoordsBuffer.Clear();
-
+        
         // Add the builtin locations
+        _locationQueue = new Queue<Location>();
         var locations = CollectLocations();
         Shuffle(locations);
 
@@ -113,6 +105,7 @@ public class LocationSystem
             var location = locations[i];
             var coords = WorldToCell(location.Position);
             _cells[coords.x, coords.y].Locations.Add(location);
+            _locationQueue.Enqueue(location);
         }
 
         // Loop through all the cells and try to populate them with synthetic locations if there aren't any builtin ones
@@ -143,25 +136,6 @@ public class LocationSystem
                 }
 
                 DebugLog.Write($"Cell {cellCoords}: no reachable synthetic locations found");
-            }
-        }
-
-        // Congestion ranking
-        _coordsByCongestion = new SortedSet<Vector2Int>(new CellCongestionComparer(_cells));
-        for (var x = 0; x < _gridSize.x; x++)
-        {
-            for (var y = 0; y < _gridSize.y; y++)
-            {
-                var cellCoords = new Vector2Int(x, y);
-                var cell = _cells[cellCoords.x, cellCoords.y];
-
-                // Skip empty cells
-                if (!cell.HasLocations)
-                {
-                    continue;
-                }
-
-                _coordsByCongestion.Add(cellCoords);
             }
         }
 
@@ -252,9 +226,7 @@ public class LocationSystem
         var coords = WorldToCell(location.Position);
         ref var cell = ref _cells[coords.x, coords.y];
 
-        _coordsByCongestion.Remove(coords);
         cell.Congestion--;
-        _coordsByCongestion.Add(coords);
 
         if (cell.Congestion >= 0) return;
 
@@ -339,19 +311,22 @@ public class LocationSystem
 
     private Location RequestFar()
     {
-        var pick = _coordsByCongestion.Min;
-        DebugLog.Write($"Requesting far cell {pick}");
-        return AssignLocation(_coordsByCongestion.Min);
+        var pick = _locationQueue.Dequeue();
+        _locationQueue.Enqueue(pick);
+       
+        var coords = WorldToCell(pick.Position);
+        ref var cell = ref _cells[coords.x, coords.y];
+        cell.Congestion++;
+        
+        DebugLog.Write($"Requesting {pick} in far cell {coords}");
+       
+        return pick;
     }
 
     private Location AssignLocation(Vector2Int coords)
     {
         ref var cell = ref _cells[coords.x, coords.y];
-
-        _coordsByCongestion.Remove(coords);
         cell.Congestion++;
-        _coordsByCongestion.Add(coords);
-
         return cell.Locations[Random.Range(0, cell.Locations.Count)];
     }
 
@@ -533,18 +508,6 @@ public class LocationSystem
         var location = new Location(_idCounter, LocationCategory.Synthetic, $"Synthetic_{_idCounter}", position);
         _idCounter++;
         return location;
-    }
-
-    private class CellCongestionComparer(Cell[,] cells) : IComparer<Vector2Int>
-    {
-        public int Compare(Vector2Int a, Vector2Int b)
-        {
-            var cellA = cells[a.x, a.y];
-            var cellB = cells[b.x, b.y];
-
-            // Compare congestion and then tie-break by Id
-            return cellA.Congestion != cellB.Congestion ? cellA.Congestion.CompareTo(cellB.Congestion) : cellA.Id.CompareTo(cellB.Id);
-        }
     }
 
     public readonly struct Zone(Vector2Int coords, float radius, float force, float decay)
