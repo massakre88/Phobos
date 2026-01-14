@@ -317,7 +317,7 @@ public class MovementSystem
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void ResetPath(Agent agent)
     {
-        agent.Movement.Target = Vector3.zero;
+        // We explicitly don't reset the target here - it hasn't changed. Only the path is supposed to be deleted.
         agent.Movement.Path = null;
         agent.Movement.Status = MovementStatus.Stopped;
         agent.Movement.CurrentCorner = 0;

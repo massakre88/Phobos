@@ -47,6 +47,10 @@ public class GotoObjectiveAction(AgentData dataset, MovementSystem movementSyste
             var agent = ActiveEntities[i];
             var objective = agent.Objective;
             
+            // TODO:
+            // Remove all state tracking - all this will do is check that the move target is within range of the current objective, and if not
+            // submit a new move order. Nothing else needs to be done.
+            
             // ReSharper disable once ConvertIfStatementToSwitchStatement
             if (objective.Status == ObjectiveStatus.Failed)
             {

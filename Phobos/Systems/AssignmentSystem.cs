@@ -155,6 +155,9 @@ public class AssignmentSystem
 
     public Location RequestNear(Entity entity, Vector3 worldPos, Location previous)
     {
+        // Always try and return assignments first to avoid counting our own influence into the decision
+        Return(entity);
+            
         var requestCoords = WorldToCell(worldPos);
         var previousCoords = previous == null ? WorldToCell(worldPos) : WorldToCell(previous.Position);
 

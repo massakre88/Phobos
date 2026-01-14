@@ -1,14 +1,19 @@
-﻿using Phobos.Components;
+﻿using Phobos.Components.Squad;
 using Phobos.Data;
 using Phobos.Diag;
 using Phobos.Entities;
 using Phobos.Systems;
 using Phobos.Tasks.Actions;
+using UnityEngine;
+using Range = Phobos.Config.Range;
 
 namespace Phobos.Tasks.Strategies;
 
 public class GotoObjectiveStrategy(SquadData squadData, AssignmentSystem assignmentSystem, float hysteresis) : Task<Squad>(hysteresis)
 {
+    private static Range _moveTimeoutRange = new(300, 600);
+    private static Range _waitTimeoutRange = new(100, 200);
+
     public override void UpdateScore(int ordinal)
     {
         var squads = squadData.Entities.Values;
@@ -24,48 +29,44 @@ public class GotoObjectiveStrategy(SquadData squadData, AssignmentSystem assignm
         for (var i = 0; i < ActiveEntities.Count; i++)
         {
             var squad = ActiveEntities[i];
-        
-            var finishedCount = 0;
-            
+
+            var startWait = false;
+
             for (var j = 0; j < squad.Size; j++)
             {
                 var agent = squad.Members[j];
-        
+
                 if (agent.Objective.Location != squad.Objective.Location)
                 {
                     agent.Objective.Location = squad.Objective.Location;
-                    agent.Objective.Status = ObjectiveStatus.Suspended;
                     DebugLog.Write($"{agent} assigned objective {squad.Objective.Location}");
                 }
 
-                if (agent.Objective.Location == null)
+                if (squad.Objective.Status == ObjectiveState.Wait || agent.Objective.Location == null)
                 {
                     continue;
                 }
 
-                if (agent.Objective.Status == ObjectiveStatus.Failed
-                    || (agent.Objective.Location.Position - agent.Player.Position).sqrMagnitude <= GotoObjectiveAction.ObjectiveEpsDistSqr)
+                if ((agent.Objective.Location.Position - agent.Player.Position).sqrMagnitude > GotoObjectiveAction.ObjectiveEpsDistSqr)
                 {
-                    finishedCount++;
+                    continue;
                 }
+
+                DebugLog.Write($"{agent} reached squad objective {squad.Objective.Location}");
+                startWait = true;
             }
 
-            if (squad.Objective.Location != null && finishedCount != squad.Size) continue;
-            
-            // Always return any current assignment first to ensure that we don't incorporate advection from our own assignment into the next pick
-            assignmentSystem.Return(squad);
-            var newLocation = assignmentSystem.RequestNear(squad, squad.Leader.Bot.Position, squad.Objective.LocationPrevious);
-
-            if (newLocation == null)
+            if (squad.Objective.Status != ObjectiveState.Wait && startWait)
             {
-                DebugLog.Write($"{squad} received null objective location");
-                continue;
+                var waitTime = _waitTimeoutRange.SampleGaussian();
+                squad.Objective.Status = ObjectiveState.Wait;
+                squad.Objective.Timeout = Time.time + waitTime;
+                DebugLog.Write($"{squad} engaging wait mode for {waitTime} seconds");
             }
-                
-            squad.Objective.LocationPrevious = squad.Objective.Location;
-            squad.Objective.Location = newLocation;
-                
-            DebugLog.Write($"{squad} assigned objective {squad.Objective.Location}");
+
+            if (squad.Objective.Location != null && Time.time < squad.Objective.Timeout) continue;
+
+            AssignNewObjective(squad);
         }
     }
 
@@ -74,5 +75,23 @@ public class GotoObjectiveStrategy(SquadData squadData, AssignmentSystem assignm
         // Ensure that we return any assignments
         assignmentSystem.Return(entity);
         base.Deactivate(entity);
+    }
+
+    private void AssignNewObjective(Squad squad)
+    {
+        var newLocation = assignmentSystem.RequestNear(squad, squad.Leader.Bot.Position, squad.Objective.LocationPrevious);
+
+        if (newLocation == null)
+        {
+            DebugLog.Write($"{squad} received null objective location");
+            return;
+        }
+
+        squad.Objective.LocationPrevious = squad.Objective.Location;
+        squad.Objective.Location = newLocation;
+        squad.Objective.Status = ObjectiveState.Active;
+        squad.Objective.Timeout = Time.time + _moveTimeoutRange.SampleGaussian();
+
+        DebugLog.Write($"{squad} assigned objective {squad.Objective.Location}");
     }
 }
