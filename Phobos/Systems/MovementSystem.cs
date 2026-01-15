@@ -127,9 +127,6 @@ public class MovementSystem
         AssignPath(agent.Movement, job);
 
         agent.Bot.Mover.Stop();
-
-        // Debug
-        PathVis.Show(job.Path, thickness: 0.1f);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

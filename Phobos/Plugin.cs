@@ -104,7 +104,7 @@ public class Plugin : BaseUnityPlugin
         /*
          * General
          */
-        ScavSquadsEnabled = Config.Bind(debug, "Brown Tide (RESTART)", false, new ConfigDescription(
+        ScavSquadsEnabled = Config.Bind(general, "Brown Tide (RESTART)", false, new ConfigDescription(
             "Allows scavs to form squads. Beware! They'll tend to congeal into massive tides that sweep over the map.",
             null,
             new ConfigurationManagerAttributes { Order = 4 }
