@@ -75,7 +75,6 @@ public class PhobosFrameUpdatePatch : ModulePatch
         if (!__instance.Bool_0)
             return;
 
-        DebugLog.Write("Phobos Frame Update");
         Singleton<PhobosManager>.Instance.Update();
     }
 }
