@@ -89,7 +89,7 @@ public class Plugin : BaseUnityPlugin
             nameof(BsgBrain.SectantWarrior)
         };
         
-        BrainManager.AddCustomLayer(typeof(PhobosLayer), brains,int.MaxValue);
+        BrainManager.AddCustomLayer(typeof(PhobosLayer), brains,19);
 
         // This layer makes scavs stand still doing bugger all, remove it
         BrainManager.RemoveLayer("AssaultEnemyFar", brains);
@@ -183,7 +183,7 @@ public class Plugin : BaseUnityPlugin
 
     private static void ZoneParametersChanged(object sender, EventArgs args)
     {
-        Singleton<PhobosManager>.Instance?.AssignmentSystem.CalculateZones();
+        Singleton<PhobosManager>.Instance?.LocationSystem.CalculateZones();
     }
     
     private static void CameraCoordsToggle(ConfigEntryBase entry)
@@ -245,7 +245,7 @@ public class Plugin : BaseUnityPlugin
         
         if (GUILayout.Button("Reload Zones"))
         {
-            Singleton<PhobosManager>.Instance?.AssignmentSystem.CalculateZones();
+            Singleton<PhobosManager>.Instance?.LocationSystem.CalculateZones();
         }
     }
 }

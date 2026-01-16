@@ -38,17 +38,17 @@ public class ZoneTelemetry : MonoBehaviour
 
         RenderGrid(
             phobos.AgentData.Entities.Values,
-            phobos.AssignmentSystem.Cells,
-            phobos.AssignmentSystem.AdvectionField,
-            phobos.AssignmentSystem.Zones,
-            phobos.AssignmentSystem.GridSize,
-            phobos.AssignmentSystem.WorldMin,
-            phobos.AssignmentSystem.WorldMax
+            phobos.LocationSystem.Cells,
+            phobos.LocationSystem.AdvectionField,
+            phobos.LocationSystem.Zones,
+            phobos.LocationSystem.GridSize,
+            phobos.LocationSystem.WorldMin,
+            phobos.LocationSystem.WorldMax
         );
     }
 
     private void RenderGrid(
-        List<Agent> agents, Cell[,] cells, Vector2[,] advectionField, List<AssignmentSystem.Zone> zones,
+        List<Agent> agents, Cell[,] cells, Vector2[,] advectionField, List<LocationSystem.Zone> zones,
         Vector2Int gridSize, Vector2 worldMin, Vector2 worldMax
     )
     {

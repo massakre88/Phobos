@@ -10,7 +10,7 @@ using Range = Phobos.Config.Range;
 
 namespace Phobos.Tasks.Strategies;
 
-public class GotoObjectiveStrategy(SquadData squadData, AssignmentSystem assignmentSystem, float hysteresis) : Task<Squad>(hysteresis)
+public class GotoObjectiveStrategy(SquadData squadData, LocationSystem locationSystem, float hysteresis) : Task<Squad>(hysteresis)
 {
     private static Range _moveTimeout = new(400, 600);
     private Range _guardDuration = new(Plugin.ObjectiveGuardDuration.Value.x, Plugin.ObjectiveGuardDuration.Value.y);
@@ -44,7 +44,7 @@ public class GotoObjectiveStrategy(SquadData squadData, AssignmentSystem assignm
     public override void Deactivate(Entity entity)
     {
         // Ensure that we return any assignments
-        assignmentSystem.Return(entity);
+        locationSystem.Return(entity);
         base.Deactivate(entity);
     }
 
@@ -149,7 +149,7 @@ public class GotoObjectiveStrategy(SquadData squadData, AssignmentSystem assignm
 
     private void AssignNewObjective(Squad squad)
     {
-        var newLocation = assignmentSystem.RequestNear(squad, squad.Leader.Bot.Position, squad.Objective.LocationPrevious);
+        var newLocation = locationSystem.RequestNear(squad, squad.Leader.Bot.Position, squad.Objective.LocationPrevious);
 
         if (newLocation == null)
         {

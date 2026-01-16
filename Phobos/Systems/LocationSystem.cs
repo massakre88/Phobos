@@ -29,7 +29,7 @@ public struct Cell(int id)
     }
 }
 
-public class AssignmentSystem
+public class LocationSystem
 {
     private readonly Cell[,] _cells;
     private readonly float _cellSize;
@@ -58,7 +58,7 @@ public class AssignmentSystem
     public Vector2[,] AdvectionField => _advectionField;
     public List<Zone> Zones => _zones;
 
-    public AssignmentSystem(string mapId, PhobosConfig phobosConfig, BotsController botsController, List<Player> humanPlayers)
+    public LocationSystem(string mapId, PhobosConfig phobosConfig, BotsController botsController, List<Player> humanPlayers)
     {
         _zoneConfig = phobosConfig.Location.MapZones[mapId];
         _botsController = botsController;
