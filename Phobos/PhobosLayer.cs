@@ -30,10 +30,6 @@ internal class DummyAction(BotOwner botOwner) : CustomLogic(botOwner)
 public class PhobosLayer : CustomLayer
 {
     private const string LayerName = "PhobosLayer";
-    private const int ActivationDelay = 5;
-
-    private int _activationFrame;
-
     private readonly PhobosManager _phobos;
     private readonly Agent _agent;
 
@@ -75,14 +71,16 @@ public class PhobosLayer : CustomLayer
     {
         if (layer.Name() == LayerName)
         {
-            _activationFrame = Time.frameCount;
+            _agent.IsActive = true;
         }
-        else if (_agent.IsActive)
+        else
         {
-            DebugLog.Write($"Deactivating {_agent}");
-            _agent.IsActive = false;
+            if (_agent.IsActive)
+            {
+                _agent.IsActive = false;
+            }
         }
-
+        
         DebugLog.Write($"{_agent} layer changed to: {layer.Name()} priority: {layer.Priority}");
     }
 
@@ -106,14 +104,6 @@ public class PhobosLayer : CustomLayer
     // ReSharper disable once InvertIf
     public override bool IsCurrentActionEnding()
     {
-        // SAIN unfortunately messes up the bot move state. We need to delay activation by a couple of frames to allow the state to get updated
-        // properly by the BSG code, otherwise bots will be teleported to the last BSG managed position.
-        if (!_agent.IsActive && Time.frameCount - _activationFrame > ActivationDelay)
-        {
-            DebugLog.Write($"Activating {_agent}");
-            _agent.IsActive = true;
-        }
-
         return false;
     }
 

@@ -30,14 +30,14 @@ public class Plugin : BaseUnityPlugin
     public static ConfigEntry<Vector2> ObjectiveGuardDuration;
     public static ConfigEntry<Vector2> ObjectiveAdjustedGuardDuration;
     public static ConfigEntry<Vector2> ObjectiveGuardDurationCut;
-    
+
     public static ConfigEntry<bool> ScavSquadsEnabled;
     public static ConfigEntry<float> ZoneRadiusScale;
     public static ConfigEntry<float> ZoneForceScale;
     public static ConfigEntry<float> ZoneRadiusDecayScale;
-    
+
     private static ConfigEntry<bool> _loggingEnabled;
-    
+
     private void Awake()
     {
         Log = Logger;
@@ -52,7 +52,7 @@ public class Plugin : BaseUnityPlugin
 
         // Config
         SetupConfig();
-        
+
         // Ensure that the configuration files are created
         // ReSharper disable once ObjectCreationAsStatement
         new PhobosConfig();
@@ -68,17 +68,24 @@ public class Plugin : BaseUnityPlugin
             Log.LogInfo("Logging disabled");
             BepInEx.Logging.Logger.Sources.Remove(Log);
         }
-        
+
         // Patches
         new GetBotsControllerPatch().Enable();
         new PhobosInitPatch().Enable();
         new PhobosDisposePatch().Enable();
         
         new MovementContextIsAIPatch().Enable();
-        new BotMoverManualFixedUpdatePatch().Enable();
         new EnableVaultPatch().Enable();
+        new BotMoverManualFixedUpdatePatch().Enable();
         // new BotMoverManualUpdatePatch().Enable();
-        
+
+        // Takes over scavs at high priority when at long range
+        new BypassAssaultEnemyFarPatch().Enable();
+        // High priority (79!) and causes bots to get stuck
+        new BypassExfiltrationPatch().Enable();
+        // Causes occasional teleport
+        new BypassLootPatrolPatch().Enable();
+
         // Misc setup
         var brains = new List<string>()
         {
@@ -92,13 +99,10 @@ public class Plugin : BaseUnityPlugin
             nameof(BsgBrain.SectantPriest),
             nameof(BsgBrain.SectantWarrior)
         };
-        
-        BrainManager.AddCustomLayer(typeof(PhobosLayer), brains,19);
 
-        // This layer makes scavs stand still doing bugger all, remove it
-        BrainManager.RemoveLayer("AssaultEnemyFar", brains);
+        BrainManager.AddCustomLayer(typeof(PhobosLayer), brains, 19);
     }
-    
+
     private void SetupConfig()
     {
         const string general = "01. General";
@@ -114,7 +118,7 @@ public class Plugin : BaseUnityPlugin
             null,
             new ConfigurationManagerAttributes { Order = 1 }
         ));
-        
+
         /*
          * Objectives
          */
@@ -133,8 +137,8 @@ public class Plugin : BaseUnityPlugin
             null,
             new ConfigurationManagerAttributes { Order = 1 }
         ));
-        
-        
+
+
         /*
          * General
          */
@@ -144,36 +148,42 @@ public class Plugin : BaseUnityPlugin
             new ConfigurationManagerAttributes { Order = 3 }
         ));
         ZoneRadiusScale.SettingChanged += ZoneParametersChanged;
-        
+
         ZoneForceScale = Config.Bind(zones, "Zone Force Scale", 1f, new ConfigDescription(
             "Scales the forces exerted by the zones on the map. Negative scaling flips the sign, turning attractors into repulsors and vice versa.",
             new AcceptableValueRange<float>(-10f, 10f),
             new ConfigurationManagerAttributes { Order = 2 }
         ));
         ZoneForceScale.SettingChanged += ZoneParametersChanged;
-        
+
         ZoneRadiusDecayScale = Config.Bind(zones, "Zone Force Decay Scale", 1f, new ConfigDescription(
             "Scales the zone force decay exponent.",
             new AcceptableValueRange<float>(0f, 5f),
             new ConfigurationManagerAttributes { Order = 1 }
         ));
         ZoneRadiusDecayScale.SettingChanged += ZoneParametersChanged;
-        
+
         /*
          * Deboog
          */
         Config.Bind(debug, "Camera Coords", "", new ConfigDescription(
             "Displays the camera coordinates to aid positioning.",
             null,
-            new ConfigurationManagerAttributes { Order = 3, CustomDrawer = CameraCoordsToggle }
+            new ConfigurationManagerAttributes { Order = 4, CustomDrawer = CameraCoordsToggle }
         ));
-        
+
         Config.Bind(debug, "Location System", "", new ConfigDescription(
             "Displays information about the location system state.",
             null,
-            new ConfigurationManagerAttributes { Order = 2, CustomDrawer = LocationSystemTelemetryToggle }
+            new ConfigurationManagerAttributes { Order = 3, CustomDrawer = LocationSystemTelemetryToggle }
         ));
-        
+
+        Config.Bind(debug, "Movement", "", new ConfigDescription(
+            "Displays information about the movement system state.",
+            null,
+            new ConfigurationManagerAttributes { Order = 2, CustomDrawer = MovementTelemetryToggle }
+        ));
+
         _loggingEnabled = Config.Bind(debug, "Enable Debug Logging (RESTART)", true, new ConfigDescription(
             "Duh. Requires restarting the game to take effect.",
             null,
@@ -185,67 +195,66 @@ public class Plugin : BaseUnityPlugin
     {
         Singleton<PhobosManager>.Instance?.LocationSystem.CalculateZones();
     }
-    
+
     private static void CameraCoordsToggle(ConfigEntryBase entry)
     {
-        if (GUILayout.Button("Show"))
+        if (GUILayout.Button("Toggle"))
         {
             var gameWorld = Singleton<GameWorld>.Instance;
-        
-            if (gameWorld == null)
-                return;
-            
-            gameWorld.GetOrAddComponent<CameraTelemetry>();
-        }
 
-        // ReSharper disable once InvertIf
-        if (GUILayout.Button("Hide"))
-        {
-            var gameWorld = Singleton<GameWorld>.Instance;
-        
             if (gameWorld == null)
                 return;
-            
-            var component =  gameWorld.GetComponent<CameraTelemetry>();
-            
-            if (component == null)
+
+            if (!gameWorld.TryGetComponent<CameraTelemetry>(out var telemetry))
+            {
+                gameWorld.GetOrAddComponent<CameraTelemetry>();
                 return;
-            
-            Destroy(component);
+            }
+
+            Destroy(telemetry);
         }
     }
 
-    
     private static void LocationSystemTelemetryToggle(ConfigEntryBase entry)
     {
-        if (GUILayout.Button("Show Map"))
+        if (GUILayout.Button("Toggle"))
         {
             var gameWorld = Singleton<GameWorld>.Instance;
-        
+
             if (gameWorld == null)
                 return;
-            
-            gameWorld.GetOrAddComponent<ZoneTelemetry>();
+
+            if (!gameWorld.TryGetComponent<ZoneTelemetry>(out var telemetry))
+            {
+                gameWorld.GetOrAddComponent<ZoneTelemetry>();
+                return;
+            }
+
+            Destroy(telemetry);
         }
 
-        if (GUILayout.Button("Hide Map"))
-        {
-            var gameWorld = Singleton<GameWorld>.Instance;
-        
-            if (gameWorld == null)
-                return;
-            
-            var component =  gameWorld.GetComponent<ZoneTelemetry>();
-            
-            if (component == null)
-                return;
-            
-            Destroy(component);
-        }
-        
         if (GUILayout.Button("Reload Zones"))
         {
             Singleton<PhobosManager>.Instance?.LocationSystem.CalculateZones();
+        }
+    }
+
+    private static void MovementTelemetryToggle(ConfigEntryBase entry)
+    {
+        if (GUILayout.Button("Toggle"))
+        {
+            var gameWorld = Singleton<GameWorld>.Instance;
+
+            if (gameWorld == null)
+                return;
+
+            if (!gameWorld.TryGetComponent<MoveTelemetry>(out var telemetry))
+            {
+                gameWorld.GetOrAddComponent<MoveTelemetry>();
+                return;
+            }
+
+            Destroy(telemetry);
         }
     }
 }

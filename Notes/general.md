@@ -55,5 +55,8 @@ Bot Move Notes:
 * If the squad lead detects low cohesion, it'll slow down
 * Other bots will maintain speed, unless they are within 1m of the current formation position, in which case they'll match the squad lead speed.
 
+# Looting
+Look at GClass117 (LootPatrol layer) on how to implement looting
+
 # General Notes
 * Don't use the bot.Position as it seems to be lagging. Use the Player.Position instead.

@@ -2,7 +2,6 @@
 using Comfort.Common;
 using EFT;
 using HarmonyLib;
-using Phobos.Diag;
 using Phobos.Orchestration;
 using SPT.Reflection.Patching;
 
