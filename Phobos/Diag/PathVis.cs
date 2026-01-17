@@ -70,4 +70,10 @@ public class PathVis
             _lineRenderer.positionCount = 0;
         }
     }
+
+    public void Destroy()
+    {
+        if (_lineRenderer != null)
+            Object.Destroy(_lineRenderer);
+    }
 }
