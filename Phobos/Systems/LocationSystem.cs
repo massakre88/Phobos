@@ -162,8 +162,6 @@ public class LocationSystem
         var requestCoords = WorldToCell(worldPos);
         var previousCoords = previous == null ? WorldToCell(worldPos) : WorldToCell(previous.Position);
 
-        DebugLog.Write($"Requesting location around {requestCoords} | {worldPos} with previous coords {previousCoords}");
-
         _tempCoordsBuffer.Clear();
 
         // First pass: determine preferential direction
@@ -197,7 +195,7 @@ public class LocationSystem
 
         var prefDirection = momentumVector + advectionVector + randomization;
 
-        DebugLog.Write($"Direction: {prefDirection} mom: {momentumVector} adv: {advectionVector} rand: {randomization}");
+        DebugLog.Write($"Location search from {requestCoords} direction: {prefDirection} mom: {momentumVector} adv: {advectionVector} rand: {randomization}");
 
         if (prefDirection == Vector2.zero)
         {
@@ -223,8 +221,6 @@ public class LocationSystem
             bestAngle = angle;
             bestNeighbor = requestCoords + candidateDirection;
         }
-
-        DebugLog.Write($"Best pick is {bestNeighbor} with angle: {bestAngle}");
 
         return bestNeighbor.HasValue ? AssignLocation(entity, bestNeighbor.Value) : RequestFar(entity);
     }
