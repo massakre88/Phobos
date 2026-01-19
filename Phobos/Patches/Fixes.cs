@@ -10,6 +10,7 @@ using UnityEngine;
 
 namespace Phobos.Patches;
 
+// ReSharper disable once ClassNeverInstantiated.Global
 public class BotMoverSoftTeleportLogPatch : ModulePatch
 {
     protected override MethodBase GetTargetMethod()

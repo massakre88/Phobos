@@ -100,7 +100,7 @@ public class Plugin : BaseUnityPlugin
             nameof(BsgBrain.SectantWarrior)
         };
 
-        BrainManager.AddCustomLayer(typeof(PhobosLayer), brains, int.MaxValue);
+        BrainManager.AddCustomLayer(typeof(PhobosLayer), brains, 19);
     }
 
     private void SetupConfig()
