@@ -10,38 +10,7 @@ using UnityEngine;
 
 namespace Phobos.Patches;
 
-// After SAIN/Phobos deactivates, this function will often teleport them to some weird position that BSG thinks the bot should have
-// It's preferable if the bot is simply stuck rather than this.
-public class GotoPositionTeleportFixPatch : ModulePatch
-{
-    protected override MethodBase GetTargetMethod()
-    {
-        /*
-        Vector3 target,
-        bool slowAtTheEnd,
-        float reachDist,
-        bool getUpWithCheck,
-        bool mustHaveWay,
-        bool onlyShortTrie = false,
-        bool force = false,
-        bool slowCalcUsingNativeNavMesh = false
-         */
-        return AccessTools.Method(
-            typeof(BotPathFinderClass),
-            nameof(BotPathFinderClass.GoToPosition),
-            parameters: [typeof(Vector3), typeof(bool), typeof(float), typeof(bool), typeof(bool), typeof(bool), typeof(bool), typeof(bool)]
-        );
-    }
-
-    // ReSharper disable once InconsistentNaming
-    [PatchPrefix]
-    public static void Patch(ref bool mustHaveWay)
-    {
-        mustHaveWay = false;
-    }
-}
-
-public class BotMoverTeleportFixPatch : ModulePatch
+public class BotMoverSoftTeleportLogPatch : ModulePatch
 {
     protected override MethodBase GetTargetMethod()
     {
@@ -50,13 +19,49 @@ public class BotMoverTeleportFixPatch : ModulePatch
 
     // ReSharper disable once InconsistentNaming
     [PatchPrefix]
-    public static bool Patch(BotMover __instance)
+    public static void Patch(BotMover __instance, Vector3 rPosition)
     {
         if (__instance is GClass493)
-            return true;
+            return;
 
-        DebugLog.Write($"Teleport role: {__instance.BotOwner_0.GetPlayer.Profile?.Info?.Settings?.Role} name: {__instance.BotOwner_0.GetPlayer.Profile?.Nickname} {new StackTrace(true)}");
-        return false;
+        // var botPosition = __instance.BotOwner_0.GetPlayer.Position;
+        // DebugGizmos.Line(botPosition, rPosition, color: Color.yellow, lineWidth: 0.5f, expiretime: 0f);
+        // DebugGizmos.Line(botPosition - 500f * Vector3.up, botPosition + 500f * Vector3.up, color: Color.yellow, lineWidth: 0.1f, expiretime: 0f);
+        // DebugGizmos.Line(rPosition - 500f * Vector3.up, rPosition + 500f * Vector3.up, color: Color.yellow, lineWidth: 0.1f, expiretime: 0f);
+
+        DebugLog.Write(
+            $"BotMover.teleport id: {__instance.BotOwner_0.Id} role: {__instance.BotOwner_0.GetPlayer.Profile?.Info?.Settings?.Role} name: {__instance.BotOwner_0.GetPlayer.Profile?.Nickname} {new StackTrace(true)}"
+        );
+    }
+}
+
+public class BotMoverHardTeleportLogPatch : ModulePatch
+{
+    protected override MethodBase GetTargetMethod()
+    {
+        return typeof(BotMover).GetMethod(nameof(BotMover.method_10));
+    }
+
+    // ReSharper disable once InconsistentNaming
+    [PatchPrefix]
+    public static void Patch(BotMover __instance, Vector3 posiblePos)
+    {
+        if (__instance is GClass493)
+            return;
+
+        var botPosition = __instance.BotOwner_0.GetPlayer.Position;
+        
+        var sqrDist = (botPosition - posiblePos).sqrMagnitude;
+        if (sqrDist < 4f)
+            return;
+
+        // DebugGizmos.Line(botPosition, posiblePos, color: Color.magenta, lineWidth: 0.5f, expiretime: 0f);
+        // DebugGizmos.Line(botPosition - 500f * Vector3.up, botPosition + 500f * Vector3.up, color: Color.magenta, lineWidth: 0.1f, expiretime: 0f);
+        // DebugGizmos.Line(posiblePos - 500f * Vector3.up, posiblePos + 500f * Vector3.up, color: Color.magenta, lineWidth: 0.1f, expiretime: 0f);
+
+        DebugLog.Write(
+            $"BotMover.method_10 distance: {sqrDist} id: {__instance.BotOwner_0.Id} role: {__instance.BotOwner_0.GetPlayer.Profile?.Info?.Settings?.Role} name: {__instance.BotOwner_0.GetPlayer.Profile?.Nickname} {new StackTrace(true)}"
+        );
     }
 }
 
@@ -91,44 +96,7 @@ public class BotMoverManualFixedUpdatePatch : ModulePatch
     [PatchPrefix]
     public static bool PatchPrefix(BotMover __instance)
     {
-        if (Singleton<BsgBotRegistry>.Instance == null || !Singleton<BsgBotRegistry>.Instance.IsPhobosActive(__instance.BotOwner_0))
-        {
-            return true;
-        }
-
-        __instance.method_12();
-        return false;
-    }
-}
-
-// Stolen from Solarint's SAIN
-// Disable specific functions in Manual Update that might be causing erratic movement in sain bots.
-// NB: Currently unused as it seems unneeded.
-// ReSharper disable once ClassNeverInstantiated.Global
-public class BotMoverManualUpdatePatch : ModulePatch
-{
-    protected override MethodBase GetTargetMethod()
-    {
-        return typeof(BotMover).GetMethod(nameof(BotMover.ManualUpdate));
-    }
-
-    // ReSharper disable once InconsistentNaming
-    [PatchPrefix]
-    public static bool PatchPrefix(BotMover __instance)
-    {
-        if (Singleton<BsgBotRegistry>.Instance == null || !Singleton<BsgBotRegistry>.Instance.IsPhobosActive(__instance.BotOwner_0))
-        {
-            return true;
-        }
-
-        __instance.LocalAvoidance.DropOffset();
-        __instance.PositionOnWayInner = __instance.BotOwner_0.Position;
-
-        //__instance.method_16();
-        //__instance.method_15();
-        __instance.method_14();
-        //__instance.LocalAvoidance.ManualUpdate();
-        return false;
+        return Singleton<BsgBotRegistry>.Instance == null || !Singleton<BsgBotRegistry>.Instance.IsPhobosActive(__instance.BotOwner_0);
     }
 }
 

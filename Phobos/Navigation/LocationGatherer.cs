@@ -1,10 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
-using System.Linq;
-using Comfort.Common;
 using EFT;
 using EFT.Interactive;
-using EFT.Interactive.SecretExfiltrations;
 using Phobos.Diag;
 using UnityEngine;
 using UnityEngine.AI;
@@ -16,6 +13,7 @@ namespace Phobos.Navigation;
 public class LocationGatherer(float cellSize)
 {
     private static int _idCounter;
+    // private readonly BotsController _botsController;
 
     public List<Location> CollectBuiltinLocations()
     {
@@ -122,11 +120,17 @@ public class LocationGatherer(float cellSize)
         }
     }
 
-    private readonly struct CoverData(List<Door> doors, List<GroupPoint> coverPoints)
-    {
-        public readonly List<Door> Doors = doors;
-        public readonly List<GroupPoint> CoverPoints = coverPoints;
-    }
+    // private CoverData FindCoverData(Vector3 position)
+    // {
+    //     var voxelIndex = _botsController.CoversData.GetIndexes(position);
+    //     return default;
+    // }
+
+    // private readonly struct CoverData(List<Door> doors, List<GroupPoint> coverPoints)
+    // {
+    //     public readonly List<Door> Doors = doors;
+    //     public readonly List<GroupPoint> CoverPoints = coverPoints;
+    // }
 
     private readonly struct Exfil(ExfiltrationPoint point) : IEquatable<Exfil>
     {

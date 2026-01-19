@@ -1,10 +1,7 @@
-﻿using System.Collections.Generic;
-using System.Linq;
-using System.Text;
+﻿using System.Text;
 using Comfort.Common;
 using DrakiaXYZ.BigBrain.Brains;
 using EFT;
-using EFT.Interactive;
 using Phobos.Diag;
 using Phobos.Entities;
 using Phobos.Orchestration;
@@ -32,7 +29,6 @@ public class PhobosLayer : CustomLayer
     private const string LayerName = "PhobosLayer";
     private readonly PhobosManager _phobos;
     private readonly Agent _agent;
-
 
     public PhobosLayer(BotOwner botOwner, int priority) : base(botOwner, priority)
     {
@@ -71,16 +67,22 @@ public class PhobosLayer : CustomLayer
     {
         if (layer.Name() == LayerName)
         {
+            // Stop the canned bot mover
+            DebugLog.Write("Stopping builting bot mover");
+            _agent.Bot.Mover.Stop();
             _agent.IsActive = true;
         }
         else
         {
             if (_agent.IsActive)
             {
+                // Final insurance that the bot is set to the navmwesh before we hand over the brain
+                DebugLog.Write("Setting player to navmesh");
+                _agent.Bot.Mover.SetPlayerToNavMesh(_agent.Position);
                 _agent.IsActive = false;
             }
         }
-        
+
         DebugLog.Write($"{_agent} layer changed to: {layer.Name()} priority: {layer.Priority}");
     }
 
