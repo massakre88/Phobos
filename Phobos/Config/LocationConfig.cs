@@ -94,7 +94,7 @@ public class LocationConfig
                         new CustomZone(new Vector2(-200, -100), new Range(350, 400), new Range(-0.25f, 0.5f)),
                         new CustomZone(new Vector2(550, 125), new Range(150, 200), new Range(-0.25f, 0.5f))
                     ],
-                    new Convergence(new Range(200, 400), new Range(0f, 0.5f))
+                    new Convergence(new Range(200, 400), new Range(0.25f, 0.75f))
                 )
             },
             { "factory4_day", new MapZone([], [], new Convergence()) },
@@ -108,7 +108,7 @@ public class LocationConfig
                         { "ZoneCenter", new BuiltinZone(new Range(500, 650), new Range(-0.25f, 1.0f), decay: 0.75f) }
                     },
                     [],
-                    new Convergence(new Range(300, 500), new Range(0f, 0.5f))
+                    new Convergence(new Range(300, 500), new Range(0.25f, 0.75f))
                 )
             },
             { "laboratory", new MapZone([], [], new Convergence()) },
@@ -124,7 +124,7 @@ public class LocationConfig
                         new CustomZone(new Vector2(0, 475), new Range(500, 600), new Range(-0.25f, 0.75f)),
                         new CustomZone(new Vector2(-55, -775), new Range(400, 450), new Range(-0.25f, 0.75f))
                     ],
-                    new Convergence(new Range(250, 1000), new Range(0f, 0.75f))
+                    new Convergence(new Range(250, 1000), new Range(0.35f, 1.25f))
                 )
             },
             {
@@ -147,7 +147,7 @@ public class LocationConfig
                         new CustomZone(new Vector2(-345, 455), new Range(500, 600), new Range(-0.25f, 0.75f)),
                         new CustomZone(new Vector2(-925, 275), new Range(500, 600), new Range(-0.25f, 0.75f))
                     ],
-                    new Convergence(new Range(750, 1500), new Range(0.25f, 1.0f))
+                    new Convergence(new Range(750, 1500), new Range(0.35f, 1.5f))
                 )
             },
             { "TarkovStreets", new MapZone([], [], new Convergence(new Range(150, 300), new Range(0f, 0.5f))) },
@@ -160,7 +160,7 @@ public class LocationConfig
                         new CustomZone(new Vector2(400, 250), new Range(600, 700), new Range(-0.25f, 0.5f)), // Outskirts
                         new CustomZone(new Vector2(135, -750), new Range(800, 1000), new Range(-0.35f, 1.0f)) // Friendship Bridge
                     ],
-                    new Convergence(new Range(250, 1000), new Range(0f, 1.0f))
+                    new Convergence(new Range(750, 1250), new Range(0.35f, 1.25f))
                 )
             },
         };
