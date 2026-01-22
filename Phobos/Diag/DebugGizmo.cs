@@ -26,7 +26,7 @@ public static class DebugGizmos
     private static void ClearGizmos()
     {
         if (DrawnGizmos.Count <= 0) return;
-        
+
         foreach (var t in DrawnGizmos)
         {
             if (t != null)
@@ -35,13 +35,16 @@ public static class DebugGizmos
 
         DrawnGizmos.Clear();
     }
-    
+
     private static readonly List<GameObject> DrawnGizmos = new();
 
     public static GameObject Sphere(Vector3 position, float size, Color color, float expiretime = 1f)
     {
         var sphere = GameObject.CreatePrimitive(PrimitiveType.Sphere);
-        sphere.GetComponent<Renderer>().material.color = color;
+        sphere.GetComponent<Renderer>().material = new Material(Shader.Find("Sprites/Default"))
+        {
+            color = color
+        };
         sphere.GetComponent<Collider>().enabled = false;
         sphere.transform.position = new Vector3(position.x, position.y, position.z);
 
@@ -52,14 +55,17 @@ public static class DebugGizmos
         return sphere;
     }
 
-    public static GameObject Box(Vector3 position, float length, float height, Color color, float expiretime = -1f)
+    public static GameObject Box(Vector3 position, float x, float y, float z, Color color, float expiretime = -1f)
     {
         var box = GameObject.CreatePrimitive(PrimitiveType.Cube);
 
-        box.GetComponent<Renderer>().material.color = color;
+        box.GetComponent<Renderer>().material = new Material(Shader.Find("Sprites/Default"))
+        {
+            color = color
+        };
         box.GetComponent<Collider>().enabled = false;
         box.transform.position = position;
-        box.transform.localScale = new Vector3(length * 2, height * 2, length * 2);
+        box.transform.localScale = new Vector3(x, y, z);
         AddGizmo(box, expiretime);
 
         return box;
@@ -87,7 +93,8 @@ public static class DebugGizmos
         return Sphere(position, 0.25f, RandomColor, expiretime);
     }
 
-    public static GameObject Line(Vector3 startPoint, Vector3 endPoint, Color color, float lineWidth = 0.05f, float expiretime = 1f, bool taperLine = false)
+    public static GameObject Line(Vector3 startPoint, Vector3 endPoint, Color color, float lineWidth = 0.05f, float expiretime = 1f,
+        bool taperLine = false)
     {
         var lineObject = new GameObject();
         var lineRenderer = lineObject.AddComponent<LineRenderer>();
@@ -158,12 +165,12 @@ public static class DebugGizmos
             pointB.y += raisePoints;
 
             if (origin == t) continue;
-            
+
             var direction = origin - pointB;
             var magnitude = direction.magnitude;
-            
+
             if (!(magnitude > MinMag)) continue;
-            
+
             var ray = Ray(pointB, direction, color, magnitude, lineSize, expireTime > 0, expireTime);
             list.Add(ray);
         }
@@ -219,7 +226,7 @@ public static class DebugGizmos
     public static List<GameObject> DrawLinesBetweenPoints(float lineSize, float expireTime, float raisePoints, Color color, params Vector3[] points)
     {
         var list = new List<GameObject>();
-        
+
         foreach (var t in points)
         {
             var pointA = t;

@@ -1,13 +1,15 @@
 ﻿using Phobos.Navigation;
+using UnityEngine;
 
 namespace Phobos.Components;
 
-public class GuardWatch
+public class GuardObjective
 {
     public Location Location;
+    public Vector3[] ArrivalPath;
     
     public override string ToString()
     {
-        return $"{nameof(Guard)}({Location})";
+        return $"{nameof(GuardObjective)}({Location})";
     }
 }

@@ -1,4 +1,5 @@
 ﻿using Phobos.Navigation;
+using UnityEngine;
 
 namespace Phobos.Components;
 
@@ -6,6 +7,7 @@ namespace Phobos.Components;
 public class Objective
 {
     public Location Location;
+    public Vector3[] ArrivalPath;
 
     public override string ToString()
     {

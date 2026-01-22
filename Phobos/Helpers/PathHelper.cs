@@ -41,12 +41,35 @@ public static class PathHelper
 
         return origin + vec3;
     }
+
+    public static float TotalLength(Vector3[] corners)
+    {
+        if (corners.Length < 2)
+        {
+            return 0f;
+        }
+        
+        var length = 0f;
+
+        for (var i = 1; i < corners.Length; i++)
+        {
+            var prevCorner = corners[i - 1];
+            var nextCorner = corners[i];
+            
+            length += Vector3.Distance(prevCorner, nextCorner);
+        }
+        
+        return length;
+    }
     
     public static Vector3 CalcForwardPoint(Vector3[] corners, Vector3 position, int cornerIndex, float targetDistanceSqr)
     {
         if (cornerIndex >= corners.Length)
             return position;
 
+        // NB: Squared distances aren't telescoping so the below implementation is incorrect, but good enough for now.
+        // Example: (2^2 + 2^2) = 8 but (2 + 2)^2 = 16
+        
         // Track squared distance remaining
         var remainingDistanceSqr = targetDistanceSqr;
         // Start from bot's current position

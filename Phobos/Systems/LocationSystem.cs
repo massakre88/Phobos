@@ -66,7 +66,7 @@ public class LocationSystem
         _humanPlayers = humanPlayers;
 
         Log.Info("Gathering built in locations");
-        _locationGatherer = new LocationGatherer(_cellSize);
+        _locationGatherer = new LocationGatherer(_cellSize, botsController);
         // Add the builtin locations
         var builtinLocations = _locationGatherer.CollectBuiltinLocations();
 
@@ -479,15 +479,6 @@ public class LocationSystem
         var z = _worldMin.y + (cell.y + 0.5f) * _cellSize;
 
         return new Vector3(x, 0, z);
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private Vector3 CellToWorld(int x, int y)
-    {
-        var xWorld = _worldMin.x + (x + 0.5f) * _cellSize;
-        var zWorld = _worldMin.y + (y + 0.5f) * _cellSize;
-
-        return new Vector3(xWorld, 0, zWorld);
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

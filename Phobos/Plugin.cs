@@ -78,12 +78,12 @@ public class Plugin : BaseUnityPlugin
         new PhobosFrameUpdatePatch().Enable();
         new PhobosDisposePatch().Enable();
         
-        // new BotMoverSoftTeleportFixPatch().Enable();
+        new ShrinkDoorNavMeshCarversPatch().Enable();
+        
         new BotMoverHardTeleportLogPatch().Enable();
         new MovementContextIsAIPatch().Enable();
         new EnableVaultPatch().Enable();
         new BotMoverManualFixedUpdatePatch().Enable();
-        // new BotMoverManualUpdatePatch().Enable();
 
         // Takes over scavs at high priority when at long range
         new BypassAssaultEnemyFarPatch().Enable();

@@ -59,6 +59,12 @@ public class GotoObjectiveAction(AgentData dataset, MovementSystem movementSyste
             {
                 continue;
             }
+
+            // Stash away the path we arrived by
+            if (agent.Movement.HasPath && objective.ArrivalPath != agent.Movement.Path)
+            {
+                objective.ArrivalPath = agent.Movement.Path;
+            }
             
             // Target hysteresis: skip new move orders if the objective deviates from the target by less than the move system epsilon
             if (MovementSystem.IsMovementTargetCurrent(agent, objective.Location.Position))
