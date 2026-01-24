@@ -1,4 +1,5 @@
-﻿using UnityEngine;
+﻿using Phobos.Diag;
+using UnityEngine;
 
 namespace Phobos.Helpers;
 
@@ -12,17 +13,17 @@ public static class PathHelper
         var d = Vector3.Distance(origin, target);
         var t = Vector3.Dot(vec2, vec1);
 
-        if (t <= 0) 
+        if (t <= 0)
             return origin;
 
-        if (t >= d) 
+        if (t >= d)
             return target;
- 
+
         var vec3 = vec2 * t;
 
         return origin + vec3;
     }
-    
+
     public static Vector3 ClosestPointOnLine(Vector3 origin, Vector3 target, Vector3 point)
     {
         var vec1 = point - origin;
@@ -31,12 +32,12 @@ public static class PathHelper
         var d = Vector3.Distance(origin, target);
         var t = Vector3.Dot(vec2, vec1);
 
-        if (t <= 0) 
+        if (t <= 0)
             return origin;
 
-        if (t >= d) 
+        if (t >= d)
             return target;
- 
+
         var vec3 = vec2 * t;
 
         return origin + vec3;
@@ -48,20 +49,20 @@ public static class PathHelper
         {
             return 0f;
         }
-        
+
         var length = 0f;
 
         for (var i = 1; i < corners.Length; i++)
         {
             var prevCorner = corners[i - 1];
             var nextCorner = corners[i];
-            
+
             length += Vector3.Distance(prevCorner, nextCorner);
         }
-        
+
         return length;
     }
-    
+
     public static Vector3 CalcForwardPoint(Vector3[] corners, Vector3 position, int cornerIndex, float targetDistanceSqr)
     {
         if (cornerIndex >= corners.Length)
@@ -69,7 +70,7 @@ public static class PathHelper
 
         // NB: Squared distances aren't telescoping so the below implementation is incorrect, but good enough for now.
         // Example: (2^2 + 2^2) = 8 but (2 + 2)^2 = 16
-        
+
         // Track squared distance remaining
         var remainingDistanceSqr = targetDistanceSqr;
         // Start from bot's current position
@@ -103,24 +104,29 @@ public static class PathHelper
         // We've run out of path - return the final corner as the furthest point
         return corners[^1];
     }
-    
-    public static float CalculatePathAngleJitter(Vector3[] path, int startIndex, int count = 2)
+
+    public static float CalculatePathAngleJitter(Vector3[] path, int startIndex, float lookAheadDistance)
     {
-        // TODO: Extend this so that we look X meters ahead instead of X corners
-        // Clamp count to available corners
-        count = Mathf.Min(count, path.Length - startIndex - 2);
-
-        if (count <= 0)
+        if (startIndex >= path.Length - 2)
             return 0f;
-        
-        var angleMax = 0f;
 
-        // Calculate angles between consecutive segments
-        for (var i = startIndex; i < startIndex + count; i++)
+        var angleMax = 0f;
+        var distanceAccumulated = 0f;
+        var currentIndex = startIndex;
+
+        // Accumulate distance and check angles until we exceed lookAheadDistance
+        while (currentIndex < path.Length - 2 && distanceAccumulated < lookAheadDistance)
         {
-            var pointA = path[i];
-            var pointB = path[i + 1];
-            var pointC = path[i + 2];
+            var pointA = path[currentIndex];
+            var pointB = path[currentIndex + 1];
+            var pointC = path[currentIndex + 2];
+
+            // Accumulate the segment distance
+            distanceAccumulated += Vector3.Distance(pointA, pointB);
+
+            // If we've exceeded the look-ahead distance, stop
+            if (distanceAccumulated > lookAheadDistance)
+                break;
 
             // Calculate direction vectors
             var directionAb = (pointB - pointA).normalized;
@@ -128,9 +134,14 @@ public static class PathHelper
 
             // Calculate angle between the two direction vectors
             var angle = Vector3.Angle(directionAb, directionBc);
+            
             if (angle > angleMax)
                 angleMax = angle;
+
+            currentIndex++;
         }
+        
+        Log.Debug($"Max angle: {angleMax}");
 
         return angleMax;
     }

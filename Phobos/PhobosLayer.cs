@@ -133,7 +133,7 @@ public class PhobosLayer : CustomLayer
         sb.AppendLine($"{_agent.Objective} dist {distObj}/{_agent.Objective.Location?.RadiusSqr}");
         sb.AppendLine("*** Generic ***");
         sb.AppendLine($"HasEnemy: {BotOwner.Memory.HaveEnemy} UnderFire: {BotOwner.Memory.IsUnderFire}");
-        sb.AppendLine($"Pose: {pose} DestSpeed: {destSpeed} ActualSpeed: {actualSpeed}");
+        sb.AppendLine($"Pose: {pose} ActualSpeed: {actualSpeed} Stamina: {BotOwner.GetPlayer.Physical.Stamina.NormalValue}");
         sb.AppendLine("*** Squad ***");
         sb.AppendLine($"{_agent.Squad}, size: {_agent.Squad.Size}");
         sb.AppendLine($"{_agent.Squad.Objective}");

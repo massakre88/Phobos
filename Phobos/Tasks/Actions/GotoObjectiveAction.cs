@@ -73,7 +73,7 @@ public class GotoObjectiveAction(AgentData dataset, MovementSystem movementSyste
             }
             
             Log.Debug($"{agent} received new objective {agent.Objective.Location}, submitting move order");
-            movementSystem.MoveToByPath(agent, objective.Location.Position);
+            movementSystem.MoveToByPath(agent, objective.Location.Position, sprint: true);
         }
     }
 
@@ -97,6 +97,6 @@ public class GotoObjectiveAction(AgentData dataset, MovementSystem movementSyste
             }
         }
 
-        movementSystem.MoveToByPath(entity, location.Position);
+        movementSystem.MoveToByPath(entity, location.Position, sprint: true);
     }
 }

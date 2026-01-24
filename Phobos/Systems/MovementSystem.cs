@@ -15,6 +15,7 @@ namespace Phobos.Systems;
 
 public class MovementSystem
 {
+    private const float SprintTargetThresholdDistanceSqr = 10f * 10f;
     private const float TargetEpsSqr = 1.5f * 1.5f;
     private const float CornerWalkEpsSqr = 0.35f * 0.35f;
     private const float CornerSprintEpsSqr = 0.6f * 0.6f;
@@ -80,13 +81,13 @@ public class MovementSystem
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void MoveToByPath(Agent agent, Vector3 destination)
+    public void MoveToByPath(Agent agent, Vector3 destination, float pose = 1f, float speed = 1f, bool prone = false, bool sprint = false)
     {
         // Generally, calling code can determine whether the current movement target is set correctly by checking this value.
         // As such, the target to be set immediately to ensure that these checks are correctly done.
         agent.Movement.Target = destination;
         ScheduleMoveJob(agent, destination);
-        ResetGait(agent);
+        ResetGait(agent, pose, speed, prone, sprint);
         ResetPath(agent);
         agent.Movement.Retry = 0;
     }
@@ -132,6 +133,7 @@ public class MovementSystem
         AssignPath(agent.Movement, job);
 
         agent.Bot.Mover.Stop();
+        agent.Bot.Mover.Pause = true;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -152,7 +154,8 @@ public class MovementSystem
         var moveSpeedMult = 1f;
 
         // Door handling
-        if (HandleDoors(agent))
+        var doorsNearby = HandleDoors(agent);
+        if (doorsNearby)
         {
             moveSpeedMult = 0.25f;
         }
@@ -167,11 +170,7 @@ public class MovementSystem
         }
 
         // Sprint
-        if (movement.Sprint != bot.Mover.Sprinting)
-        {
-            bot.Mover.Sprint(movement.Sprint);
-            // player.EnableSprint(movement.Sprint);
-        }
+        player.EnableSprint(movement.Sprint && CanSprint(agent) && !doorsNearby);
 
         // Pose
         var poseDelta = movement.Pose - player.PoseLevel;
@@ -322,12 +321,12 @@ public class MovementSystem
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void ResetGait(Agent agent)
+    private static void ResetGait(Agent agent, float pose = 1f, float speed = 1f, bool prone = false, bool sprint = false)
     {
-        agent.Movement.Pose = 1f;
-        agent.Movement.Speed = 1f;
-        agent.Movement.Prone = false;
-        agent.Movement.Sprint = false;
+        agent.Movement.Pose = pose;
+        agent.Movement.Speed = speed;
+        agent.Movement.Prone = prone;
+        agent.Movement.Sprint = sprint;
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
@@ -348,20 +347,16 @@ public class MovementSystem
         movement.CurrentCorner = 0;
     }
 
-    // private static bool ShouldSprint(Actor actor)
-    // {
-    //     var bot = actor.Bot;
-    //     var isFarFromDestination = actor.Movement.Target.DistanceSqr > TargetVicinityDistanceSqr;
-    //     var isOutside = bot.AIData.EnvironmentId == 0;
-    //     var isAbleToSprint = !bot.Mover.NoSprint && bot.GetPlayer.MovementContext.CanSprint;
-    //     var isPathSmooth = CalculatePathAngleJitter(
-    //         agent.Position,
-    //         actor.Movement.ActualPath.Vector3_0,
-    //         actor.Movement.ActualPath.CurIndex
-    //     ) < 15f;
-    //
-    //     return isOutside && isAbleToSprint && isPathSmooth && isFarFromDestination;
-    // }
+    private static bool CanSprint(Agent agent)
+    {
+        var bot = agent.Bot;
+        var isFarFromDestination = (agent.Movement.Target - agent.Position).sqrMagnitude > SprintTargetThresholdDistanceSqr;
+        var isOutside = bot.AIData.EnvironmentId == 0;
+        var isAbleToSprint = bot.GetPlayer.MovementContext.CanSprint;
+        var isPathSmooth = PathHelper.CalculatePathAngleJitter(agent.Movement.Path, agent.Movement.CurrentCorner, 10f) < 30f;
+
+        return isOutside && isAbleToSprint && isPathSmooth && isFarFromDestination;
+    }
 
     private class StuckRemediation(MovementSystem movementSystem, List<Player> humanPlayers)
     {
