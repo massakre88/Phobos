@@ -10,7 +10,7 @@ using UnityEngine;
 
 namespace Phobos.Patches;
 
-// ReSharper disable once ClassNeverInstantiated.Global
+
 public class BotMoverSoftTeleportLogPatch : ModulePatch
 {
     protected override MethodBase GetTargetMethod()
@@ -25,14 +25,30 @@ public class BotMoverSoftTeleportLogPatch : ModulePatch
         if (__instance is GClass493)
             return;
 
+        var botPosition = __instance.BotOwner_0.GetPlayer.Position;
+
+        var sqrDist = (botPosition - rPosition).sqrMagnitude;
+        if (sqrDist < 4f)
+            return;
+
         // var botPosition = __instance.BotOwner_0.GetPlayer.Position;
         // DebugGizmos.Line(botPosition, rPosition, color: Color.yellow, lineWidth: 0.5f, expiretime: 0f);
         // DebugGizmos.Line(botPosition - 500f * Vector3.up, botPosition + 500f * Vector3.up, color: Color.yellow, lineWidth: 0.1f, expiretime: 0f);
         // DebugGizmos.Line(rPosition - 500f * Vector3.up, rPosition + 500f * Vector3.up, color: Color.yellow, lineWidth: 0.1f, expiretime: 0f);
 
-        Log.Debug(
-            $"BotMover.teleport id: {__instance.BotOwner_0.Id} role: {__instance.BotOwner_0.GetPlayer.Profile?.Info?.Settings?.Role} name: {__instance.BotOwner_0.GetPlayer.Profile?.Nickname} {new StackTrace(true)}"
-        );
+        var id = __instance.BotOwner_0.Id;
+        var role = __instance.BotOwner_0.GetPlayer.Profile?.Info?.Settings?.Role;
+        var nickName = __instance.BotOwner_0.GetPlayer.Profile?.Nickname;
+        
+        Log.Debug($"BotMover.Teleport() id: {id} role: {role} name: {nickName} pos: {botPosition}");
+        Log.Debug($"rPosition: {rPosition} distance: {Mathf.Sqrt(sqrDist)}");
+        Log.Debug($"CurTime: {Time.time} LastGoodCastPointTime: {__instance.LastGoodCastPointTime} PrevPosLinkedTime_1: {__instance.PrevPosLinkedTime_1}");
+        Log.Debug($"PositionOnWayInner: {__instance.PositionOnWayInner} distance: {Vector3.Distance(botPosition, __instance.PositionOnWayInner)}");
+        Log.Debug($"PositionOnWayCasted: {__instance.PositionOnWayCasted} distance: {Vector3.Distance(botPosition, __instance.PositionOnWayCasted)}");
+        Log.Debug($"PrevLinkPos: {__instance.PrevLinkPos} distance: {Vector3.Distance(botPosition, __instance.PrevLinkPos)}");
+        Log.Debug($"PrevSuccessLinkedFrom_1: {__instance.PrevSuccessLinkedFrom_1} distance: {Vector3.Distance(botPosition, __instance.PrevSuccessLinkedFrom_1)}");
+        Log.Debug($"LastGoodCastPoint: {__instance.LastGoodCastPoint} distance: {Vector3.Distance(botPosition, __instance.LastGoodCastPoint)}");
+        Log.Debug($"{new StackTrace(true)}");
     }
 }
 
@@ -51,7 +67,7 @@ public class BotMoverHardTeleportLogPatch : ModulePatch
             return;
 
         var botPosition = __instance.BotOwner_0.GetPlayer.Position;
-        
+
         var sqrDist = (botPosition - posiblePos).sqrMagnitude;
         if (sqrDist < 4f)
             return;
@@ -60,9 +76,19 @@ public class BotMoverHardTeleportLogPatch : ModulePatch
         // DebugGizmos.Line(botPosition - 500f * Vector3.up, botPosition + 500f * Vector3.up, color: Color.magenta, lineWidth: 0.1f, expiretime: 0f);
         // DebugGizmos.Line(posiblePos - 500f * Vector3.up, posiblePos + 500f * Vector3.up, color: Color.magenta, lineWidth: 0.1f, expiretime: 0f);
 
-        Log.Debug(
-            $"BotMover.method_10 distance: {sqrDist} id: {__instance.BotOwner_0.Id} role: {__instance.BotOwner_0.GetPlayer.Profile?.Info?.Settings?.Role} name: {__instance.BotOwner_0.GetPlayer.Profile?.Nickname} {new StackTrace(true)}"
-        );
+        var id = __instance.BotOwner_0.Id;
+        var role = __instance.BotOwner_0.GetPlayer.Profile?.Info?.Settings?.Role;
+        var nickName = __instance.BotOwner_0.GetPlayer.Profile?.Nickname;
+
+        Log.Debug($"BotMover.Teleport() id: {id} role: {role} name: {nickName} pos: {botPosition}");
+        Log.Debug($"rPosition: {posiblePos} distance: {Mathf.Sqrt(sqrDist)}");
+        Log.Debug($"CurTime: {Time.time} LastGoodCastPointTime: {__instance.LastGoodCastPointTime} PrevPosLinkedTime_1: {__instance.PrevPosLinkedTime_1}");
+        Log.Debug($"PositionOnWayInner: {__instance.PositionOnWayInner} distance: {Vector3.Distance(botPosition, __instance.PositionOnWayInner)}");
+        Log.Debug($"PositionOnWayCasted: {__instance.PositionOnWayCasted} distance: {Vector3.Distance(botPosition, __instance.PositionOnWayCasted)}");
+        Log.Debug($"PrevLinkPos: {__instance.PrevLinkPos} distance: {Vector3.Distance(botPosition, __instance.PrevLinkPos)}");
+        Log.Debug($"PrevSuccessLinkedFrom_1: {__instance.PrevSuccessLinkedFrom_1} distance: {Vector3.Distance(botPosition, __instance.PrevSuccessLinkedFrom_1)}");
+        Log.Debug($"LastGoodCastPoint: {__instance.LastGoodCastPoint} distance: {Vector3.Distance(botPosition, __instance.LastGoodCastPoint)}");
+        Log.Debug($"{new StackTrace(true)}");
     }
 }
 
