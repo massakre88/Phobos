@@ -4,6 +4,7 @@ using System.Linq;
 using EFT;
 using EFT.Interactive;
 using Phobos.Diag;
+using Phobos.Helpers;
 using UnityEngine;
 using UnityEngine.AI;
 using Object = UnityEngine.Object;
@@ -68,6 +69,12 @@ public class LocationGatherer(float cellSize, BotsController botsController)
 
         Shuffle(collection);
 
+        foreach (var point in botsController.CoversData.Points)
+        {
+            DebugGizmos.Line(point.Position, point.Position + Vector3.up, new Color(0f, 1f, 0f, 0.5f), expiretime: 0f);
+            DebugGizmos.Sphere(point.Position + Vector3.up, 0.5f, Color.green, 0f);
+        }
+
         return collection;
     }
 
@@ -79,6 +86,13 @@ public class LocationGatherer(float cellSize, BotsController botsController)
         const LocationCategory category = LocationCategory.Synthetic;
 
         var coverData = CollectBuiltinCoverData(position, radius);
+        
+        if (coverData.CoverPoints.Count < 16)
+        {
+            var extraPoints = 16 - coverData.CoverPoints.Count;
+            CollectSyntheticCoverData(coverData.CoverPoints, position, radius, extraPoints);
+        }
+        
         Log.Debug($"Location {category}:{name} has {coverData.Doors.Count} doors and {coverData.CoverPoints.Count} cover points in proximity");
         var location = new Location(_idCounter, category, name, position, radiusSqr, coverData.Doors, coverData.CoverPoints);
         _idCounter++;
@@ -99,7 +113,13 @@ public class LocationGatherer(float cellSize, BotsController botsController)
         var radiusSqr = radius * radius;
 
         var coverData = CollectBuiltinCoverData(position, radius);
-
+        
+        if (coverData.CoverPoints.Count < 16)
+        {
+            var extraPoints = 16 - coverData.CoverPoints.Count;
+            CollectSyntheticCoverData(coverData.CoverPoints, position, radius, extraPoints);
+        }
+        
         Log.Debug($"Location {category}:{name} has {coverData.Doors.Count} doors and {coverData.CoverPoints.Count} cover points in proximity");
 
         var location = new Location(_idCounter, category, name, position, radiusSqr, coverData.Doors, coverData.CoverPoints);
@@ -174,30 +194,46 @@ public class LocationGatherer(float cellSize, BotsController botsController)
         return new CoverData(doors.ToList(), coverPoints.ToList());
     }
 
-    private void CollectSyntheticCoverData(List<CoverPoint> coverPoints, Vector3 locationPosition, float radius, int gridSize = 5)
+    private static void CollectSyntheticCoverData(List<CoverPoint> coverPoints, Vector3 locationPosition, float radius, int count)
     {
-        // The total grid width should be 0.75 * radius to ensure the points are within the objective zone
-        var gridWidth = radius * 0.75f;
-        var offset = gridWidth / 2f;
-        var spacing = gridWidth / (gridSize - 1);
-        var navMeshSampleEps = gridWidth / gridSize;
-
-        for (var z = 0; z < gridSize; z++)
+        var innerRadius = 0.75f *  radius;
+        var goldenAngle = Mathf.PI * (3f - Mathf.Sqrt(5f));
+        // 0.5 × r × √(π/N) ~= 0.886 × r / √N and we take half of it
+        var navmeshSampleEps = 0.886f * innerRadius / Mathf.Sqrt(count) / 2;
+        
+        // Sunflower seed pattern
+        for (var i = 0; i < count; i++)
         {
-            for (var x = 0; x < gridSize; x++)
+            var theta = i * goldenAngle;
+            var r = innerRadius * Mathf.Sqrt((float)i / count);
+            
+            var x = locationPosition.x + r * Mathf.Cos(theta);
+            var z = locationPosition.z + r * Mathf.Sin(theta);
+            
+            var candidatePosition = new Vector3(x, locationPosition.y, z);
+            
+            if (!NavMesh.SamplePosition(candidatePosition, out var target, navmeshSampleEps, NavMesh.AllAreas))
             {
-                var xPos = locationPosition.x - offset + x * spacing;
-                var zPos = locationPosition.z - offset + z * spacing;
-
-                if (
-                    !NavMesh.SamplePosition(new Vector3(xPos, locationPosition.y, zPos), out var target, navMeshSampleEps, NavMesh.AllAreas)
-                ) continue;
-
-                // TODO: Trace a path from the location to the cover. If the length is less than 0.75 * radius, we are ok 
-
-                var coverPoint = new CoverPoint(target.position, Vector3.zero, CoverType.Wall, CoverLevel.Lay);
-                coverPoints.Add(coverPoint);
+                continue;
             }
+
+            var path = new NavMeshPath();
+            if (!NavMesh.CalculatePath(target.position, locationPosition, NavMesh.AllAreas, path))
+            {
+                continue;
+            }
+
+            if (path.status != NavMeshPathStatus.PathComplete || PathHelper.TotalLength(path.corners) > innerRadius)
+            {
+                continue;
+            }
+                
+            DebugGizmos.Line(locationPosition, target.position + Vector3.up, new Color(1f, 0f, 0f, 0.5f), expiretime: 0f);
+            DebugGizmos.Line(target.position, target.position + Vector3.up, new Color(1f, 0f, 0f, 0.5f), expiretime: 0f);
+            DebugGizmos.Sphere(target.position + Vector3.up, 0.5f, Color.red, 0f);
+
+            var coverPoint = new CoverPoint(target.position, Vector3.zero, CoverCategory.None, CoverLevel.Lay);
+            coverPoints.Add(coverPoint);
         }
     }
 

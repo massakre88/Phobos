@@ -3,12 +3,41 @@ using UnityEngine;
 
 namespace Phobos.Navigation;
 
-public readonly struct CoverPoint(Vector3 position, Vector3 wallDirection, CoverType coverType, CoverLevel coverLevel) : IEquatable<CoverPoint>
+public enum CoverCategory
 {
-    public readonly Vector3 Position = position;
-    public readonly Vector3 WallDirection = wallDirection;
-    public readonly CoverType CoverType = coverType;
-    public readonly CoverLevel CoverLevel = coverLevel;
+    Hard,
+    Soft,
+    None
+}
+
+public readonly struct CoverPoint : IEquatable<CoverPoint>
+{
+    public readonly Vector3 Position;
+    public readonly Vector3 Direction;
+    public readonly CoverCategory Category;
+    public readonly CoverLevel Level;
+
+    public CoverPoint(Vector3 position, Vector3 direction, CoverCategory category, CoverLevel level)
+    {
+        Position = position;
+        Direction = direction;
+        Category = category;
+        Level = level;
+    }
+
+    public CoverPoint(Vector3 position, Vector3 direction, CoverType category, CoverLevel level)
+    {
+        Position = position;
+        Direction = direction;
+        Category = category switch
+        {
+            CoverType.Wall => CoverCategory.Hard,
+            CoverType.Foliage => CoverCategory.Soft,
+            _ => CoverCategory.None
+        };
+        Level = level;
+    }
+
 
     public bool Equals(CoverPoint other)
     {

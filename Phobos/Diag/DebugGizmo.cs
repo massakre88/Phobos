@@ -70,6 +70,29 @@ public static class DebugGizmos
 
         return box;
     }
+    
+    public static GameObject Box(BoxCollider collider, Color color, float expiretime = -1f)
+    {
+        var box = GameObject.CreatePrimitive(PrimitiveType.Cube);
+
+        box.GetComponent<Renderer>().material = new Material(Shader.Find("Sprites/Default"))
+        {
+            color = color
+        };
+        box.GetComponent<Collider>().enabled = false;
+        AddGizmo(box, expiretime);
+        
+        // Position: collider world position
+        box.transform.position = collider.transform.TransformPoint(collider.center);
+
+        // Rotation: match source rotation
+        box.transform.rotation = collider.transform.rotation;
+
+        // Scale: collider size scaled by source transform
+        box.transform.localScale = Vector3.Scale(collider.size, collider.transform.lossyScale);
+
+        return box;
+    }
 
     private static void AddGizmo(GameObject obj, float expireTime)
     {

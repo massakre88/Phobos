@@ -2,6 +2,7 @@
 using Comfort.Common;
 using EFT;
 using Phobos.Diag;
+using Phobos.Navigation;
 using Phobos.Orchestration;
 using SPT.Reflection.Patching;
 
@@ -20,6 +21,9 @@ public class PhobosInitPatch : ModulePatch
     public static void Postfix(BotsController __instance)
     {
         Log.Debug("Initializing Phobos");
+        
+        // Navmesh fixes
+        BorderZoneCarver.AddNavmeshCutter();
         
         // Core
         var bsgBotRegistry = new BsgBotRegistry();
