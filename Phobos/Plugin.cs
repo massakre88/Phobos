@@ -112,10 +112,10 @@ public class Plugin : BaseUnityPlugin
 
     private void SetupConfig()
     {
-        const string general = "01. General";
-        const string objectives = "02. Objectives";
-        const string zones = "03. Zones";
-        const string debug = "XX. Diagnostics";
+        const string general = "01. General V1";
+        const string objectives = "02. Objectives V1";
+        const string zones = "03. Zones V1";
+        const string debug = "XX. Diagnostics V1";
 
         /*
          * General
@@ -129,18 +129,18 @@ public class Plugin : BaseUnityPlugin
         /*
          * Objectives
          */
-        ObjectiveGuardDuration = Config.Bind(objectives, "Base Guard Duration (RESTART)", new Vector2(60f, 120f), new ConfigDescription(
+        ObjectiveGuardDuration = Config.Bind(objectives, "Base Guard Duration (RESTART)", new Vector2(60f, 180f), new ConfigDescription(
             "Base guarding duration range. Squads will wait a bit at their objectives before moving on.",
             null,
             new ConfigurationManagerAttributes { Order = 3 }
         ));
         ObjectiveAdjustedGuardDuration = Config.Bind(objectives, "Adjusted Guard Duration (RESTART)", new Vector2(3.5f, 6.5f), new ConfigDescription(
-            "Duration that squads can guard quest and synthetic objectives once all the members are at the location.",
+            "Duration that squads can guard synthetic objectives once all the members are at the location.",
             null,
             new ConfigurationManagerAttributes { Order = 2 }
         ));
-        ObjectiveGuardDurationCut = Config.Bind(objectives, "Guard Duration Cut (RESTART)", new Vector2(0.1f, 0.5f), new ConfigDescription(
-            "How much to scale down the remaining wait time for loot objectives once all the members are at the location",
+        ObjectiveGuardDurationCut = Config.Bind(objectives, "Guard Duration Cut (RESTART)", new Vector2(0.2f, 0.5f), new ConfigDescription(
+            "How much to scale down the remaining wait time for loot and quest objectives once all the members are at the location",
             null,
             new ConfigurationManagerAttributes { Order = 1 }
         ));

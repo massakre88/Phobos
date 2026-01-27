@@ -1,12 +1,5 @@
 ﻿# TODO:
 
-# Location Covers
-AICoversData.GetIndexes combined with AICoversData.GetVoxelesExtended should get us the voxels around a world pos.
-
-AICoversData itself is accessible on BotsController.CoversData_1
-
-!!! Also get all shrubs and trees in the vicinity. The cover point will be the point 1m away from the tree towards the objective. Shrubs we'll just hang out in the middle.
-
 ## Standing Cover
 - Look at any visible doors
   - The scan angle here will be 0 deg
@@ -23,18 +16,6 @@ AICoversData itself is accessible on BotsController.CoversData_1
 - Most bots should crouch
 
 Ignore prone cover for now.
-
-class CoverPoint
-- Position
-- CoverType (bsg - trees count as walls)
-- CoverLevel (bsg)
-- WallDirection (don't use for shrubs)
-
-# GuardReposition
-Grab a random GroupPoint near the location.
-
-# GuardWatch
-Will either look at the objective, a visible door or in the opposite of the wall direction in the GroupPoint with a gentle random sweeping sway in an ellipse that 30 deg tall and 60 deg wide.
 
 # Formation Movement
 We now have a squad leader, so we can anchor everything to this.
@@ -59,6 +40,3 @@ Bot Move Notes:
 
 # Looting
 Look at GClass117 (LootPatrol layer) on how to implement looting
-
-# General Notes
-* Don't use the bot.Position as it seems to be lagging. Use the Player.Position instead.

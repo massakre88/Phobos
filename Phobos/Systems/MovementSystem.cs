@@ -170,7 +170,11 @@ public class MovementSystem
         }
 
         // Sprint
-        player.EnableSprint(movement.Sprint && CanSprint(agent) && !doorsNearby);
+        var shouldSprint = movement.Sprint && CanSprint(agent) && !doorsNearby;
+        if (player.Physical.Sprinting != shouldSprint)
+        {
+            player.EnableSprint(shouldSprint);
+        }
 
         // Pose
         var poseDelta = movement.Pose - player.PoseLevel;

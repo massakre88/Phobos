@@ -69,12 +69,6 @@ public class LocationGatherer(float cellSize, BotsController botsController)
 
         Shuffle(collection);
 
-        foreach (var point in botsController.CoversData.Points)
-        {
-            DebugGizmos.Line(point.Position, point.Position + Vector3.up, new Color(0f, 1f, 0f, 0.5f), expiretime: 0f);
-            DebugGizmos.Sphere(point.Position + Vector3.up, 0.5f, Color.green, 0f);
-        }
-
         return collection;
     }
 
@@ -110,8 +104,7 @@ public class LocationGatherer(float cellSize, BotsController botsController)
             LocationCategory.Exfil => Mathf.Clamp(cellSize / 2f, 10f, 15f),
             _ => 10f
         };
-        var radiusSqr = radius * radius;
-
+        
         var coverData = CollectBuiltinCoverData(position, radius);
         
         if (coverData.CoverPoints.Count < 16)
@@ -122,6 +115,7 @@ public class LocationGatherer(float cellSize, BotsController botsController)
         
         Log.Debug($"Location {category}:{name} has {coverData.Doors.Count} doors and {coverData.CoverPoints.Count} cover points in proximity");
 
+        var radiusSqr = radius * radius;
         var location = new Location(_idCounter, category, name, position, radiusSqr, coverData.Doors, coverData.CoverPoints);
         _idCounter++;
         return location;
@@ -154,6 +148,7 @@ public class LocationGatherer(float cellSize, BotsController botsController)
     {
         // The voxel shape is actually 10x5x10 but we just round it out for out purposes.
         const float voxelSize = 10f;
+        var innerRadius = 0.75f * radius;
         var voxelSearchRange = Mathf.CeilToInt(2f * radius / voxelSize);
         var voxelIndex = botsController.CoversData.GetIndexes(position);
 
@@ -182,8 +177,15 @@ public class LocationGatherer(float cellSize, BotsController botsController)
             {
                 var groupPoint = voxel.Points[j];
 
-                if ((groupPoint.Position - position).magnitude > radius)
+                if ((groupPoint.Position - position).magnitude > innerRadius)
+                {
                     continue;
+                }
+                
+                if (!IsReachable(position, groupPoint.Position, radius))
+                {
+                    continue;
+                }
 
                 var coverPoint = new CoverPoint(groupPoint.Position, groupPoint.WallDirection, groupPoint.CoverType, groupPoint.CoverLevel);
 
@@ -196,10 +198,10 @@ public class LocationGatherer(float cellSize, BotsController botsController)
 
     private static void CollectSyntheticCoverData(List<CoverPoint> coverPoints, Vector3 locationPosition, float radius, int count)
     {
-        var innerRadius = 0.75f *  radius;
+        var innerRadius = 0.75f * radius;
         var goldenAngle = Mathf.PI * (3f - Mathf.Sqrt(5f));
-        // 0.5 × r × √(π/N) ~= 0.886 × r / √N and we take half of it
-        var navmeshSampleEps = 0.886f * innerRadius / Mathf.Sqrt(count) / 2;
+        // 0.5 × r × √(π/N) ~= 0.886 × r / √N
+        var navmeshSampleEps = 0.886f * innerRadius / Mathf.Sqrt(count);
         
         // Sunflower seed pattern
         for (var i = 0; i < count; i++)
@@ -217,24 +219,31 @@ public class LocationGatherer(float cellSize, BotsController botsController)
                 continue;
             }
 
-            var path = new NavMeshPath();
-            if (!NavMesh.CalculatePath(target.position, locationPosition, NavMesh.AllAreas, path))
+            if (!IsReachable(locationPosition, target.position, radius))
             {
                 continue;
             }
-
-            if (path.status != NavMeshPathStatus.PathComplete || PathHelper.TotalLength(path.corners) > innerRadius)
-            {
-                continue;
-            }
-                
-            DebugGizmos.Line(locationPosition, target.position + Vector3.up, new Color(1f, 0f, 0f, 0.5f), expiretime: 0f);
-            DebugGizmos.Line(target.position, target.position + Vector3.up, new Color(1f, 0f, 0f, 0.5f), expiretime: 0f);
-            DebugGizmos.Sphere(target.position + Vector3.up, 0.5f, Color.red, 0f);
 
             var coverPoint = new CoverPoint(target.position, Vector3.zero, CoverCategory.None, CoverLevel.Lay);
             coverPoints.Add(coverPoint);
         }
+
+        // Add the location itself as a cover point if nothing else is available
+        if (coverPoints.Count == 0)
+        {
+            coverPoints.Add(new CoverPoint(locationPosition, Vector3.zero, CoverCategory.None, CoverLevel.Lay));
+        }
+    }
+
+    private static bool IsReachable(Vector3 origin, Vector3 target, float lengthLimit)
+    {
+        var path = new NavMeshPath();
+        if (!NavMesh.CalculatePath(origin, target, NavMesh.AllAreas, path))
+        {
+            return false;
+        }
+
+        return path.status == NavMeshPathStatus.PathComplete && PathHelper.TotalLength(path.corners) <= lengthLimit;
     }
 
     private readonly struct CoverData(List<Door> doors, List<CoverPoint> coverPoints)

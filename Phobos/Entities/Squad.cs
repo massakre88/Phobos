@@ -7,10 +7,11 @@ using Phobos.Tasks.Strategies;
 namespace Phobos.Entities;
 
 
-public class Squad(int id, float[] taskScores) : Entity(id, taskScores)
+public class Squad(int id, float[] taskScores, int targetMembersCount) : Entity(id, taskScores)
 {
     public readonly List<Agent> Members = new(6);
     public readonly SquadObjective Objective = new();
+    public readonly int TargetMembersCount = targetMembersCount;
 
     public Agent Leader;
     

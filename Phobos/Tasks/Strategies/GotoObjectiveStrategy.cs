@@ -80,11 +80,11 @@ public class GotoObjectiveStrategy(SquadData squadData, LocationSystem locationS
                     {
                         case LocationCategory.ContainerLoot:
                         case LocationCategory.LooseLoot:
+                        case LocationCategory.Quest:
                             // These objectives will have their wait timer cut if everyone arrived
                             AdjustDuration(squadObjective, squadObjective.Duration * _guardDurationCut.SampleGaussian());
                             Log.Debug($"{squad} adjusted {squadObjective.Location} wait duration to {squadObjective.Duration}");
                             break;
-                        case LocationCategory.Quest:
                         case LocationCategory.Synthetic:
                             // These objectives simply reset the timer to a very short duration to give the bots chance to disperse
                             // NB: Here we also reset the start time otherwise it's almost guaranteed we'd trigger an immediate timout
@@ -121,6 +121,12 @@ public class GotoObjectiveStrategy(SquadData squadData, LocationSystem locationS
             if (agentObjective.Location != squadObjective.Location)
             {
                 agentObjective.Location = squadObjective.Location;
+                
+                if (squadObjective.Location != null)
+                {
+                    agent.Guard.CoverPoint = squadObjective.CoverPoints[i];
+                }
+                
                 Log.Debug($"{agent} assigned objective {squadObjective.Location}");
             }
 
@@ -157,7 +163,9 @@ public class GotoObjectiveStrategy(SquadData squadData, LocationSystem locationS
 
     private void AssignNewObjective(Squad squad)
     {
-        var newLocation = locationSystem.RequestNear(squad, squad.Leader.Bot.Position, squad.Objective.LocationPrevious);
+        var objective = squad.Objective;
+        
+        var newLocation = locationSystem.RequestNear(squad, squad.Leader.Bot.Position, objective.LocationPrevious);
 
         if (newLocation == null)
         {
@@ -165,12 +173,31 @@ public class GotoObjectiveStrategy(SquadData squadData, LocationSystem locationS
             return;
         }
 
-        squad.Objective.LocationPrevious = squad.Objective.Location;
-        squad.Objective.Location = newLocation;
-        squad.Objective.Status = ObjectiveState.Active;
-        ResetDuration(squad.Objective, _moveTimeout.SampleGaussian());
+        objective.LocationPrevious = objective.Location;
+        objective.Location = newLocation;
+        objective.Status = ObjectiveState.Active;
+        
+        ShufflePickCoverPoints(objective, squad.TargetMembersCount);
+        
+        ResetDuration(objective, _moveTimeout.SampleGaussian());
 
-        Log.Debug($"{squad} assigned objective {squad.Objective.Location}");
+        Log.Debug($"{squad} assigned objective {objective.Location}");
+    }
+    
+    private static void ShufflePickCoverPoints(SquadObjective objective, int count)
+    {
+        var location = objective.Location;
+        
+        objective.CoverPoints.Clear();
+
+        var randIdx = Random.Range(0, location.CoverPoints.Count);
+        
+        for (var i = 0; i < count; i++)
+        {
+            objective.CoverPoints.Add(location.CoverPoints[randIdx]);
+            randIdx = (randIdx + 1) % location.CoverPoints.Count;
+            Log.Debug($"Getting cover point at {randIdx}/{location.CoverPoints.Count}");
+        }
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]

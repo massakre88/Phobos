@@ -19,6 +19,7 @@ public class Agent(int id, BotOwner bot, float[] taskScores) : Entity(id, taskSc
     public readonly Look Look = new();
     
     public readonly Objective Objective = new();
+    public readonly Guard Guard = new();
 
     private readonly BifacialTransform _bodyTransform = bot.Mover.Player.PlayerBones.BodyTransform;
 

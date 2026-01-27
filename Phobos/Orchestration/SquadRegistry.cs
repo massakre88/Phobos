@@ -66,8 +66,10 @@ public class SquadRegistry(SquadData squadData, StrategyManager strategyManager)
     
     private Squad AddNewSquad(Agent agent)
     {
-        var squad = squadData.AddEntity(strategyManager.Tasks.Length);
-        Log.Debug($"Registered new {squad}");
+        // Have to bump this by 1, because of course things can't be simple. For scavs, the value is always 0....
+        var targetMembersCount = agent.Bot.BotsGroup.TargetMembersCount + 1;
+        var squad = squadData.AddEntity(strategyManager.Tasks.Length, targetMembersCount);
+        Log.Debug($"Registered new {squad} with {targetMembersCount} target members");
         squad.Leader = agent;
         squad.Leader.IsLeader = true;
         Log.Debug($"{squad} assigned new leader {squad.Leader}");

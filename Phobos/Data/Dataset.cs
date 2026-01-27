@@ -1,7 +1,6 @@
 ﻿using System;
 using System.Collections.Generic;
 using EFT;
-using Phobos.Diag;
 using Phobos.Entities;
 
 namespace Phobos.Data;
@@ -64,9 +63,9 @@ public class AgentData() : Dataset<Agent, AgentArray>(new AgentArray())
 
 public class SquadData() : Dataset<Squad, SquadArray>(new SquadArray())
 {
-    public Squad AddEntity(int taskCount)
+    public Squad AddEntity(int taskCount, int targetMembersCount)
     {
-        var squad = Entities.Add(taskCount);
+        var squad = Entities.Add(taskCount, targetMembersCount);
         
         AddEntityComponents(squad);
                 

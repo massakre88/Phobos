@@ -186,7 +186,7 @@ public class LocationSystem
         if (_convergenceUpdatePacing.Blocked())
             return;
 
-        Log.Debug("Updating convergence field");
+        Log.Debug("Updating convergence");
         CalculateConvergence();
     }
 

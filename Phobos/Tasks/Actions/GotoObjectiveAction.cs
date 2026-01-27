@@ -1,9 +1,7 @@
-﻿using System.Runtime.CompilerServices;
-using Phobos.Components;
+﻿using Phobos.Components;
 using Phobos.Data;
 using Phobos.Diag;
 using Phobos.Entities;
-using Phobos.Navigation;
 using Phobos.Systems;
 using UnityEngine;
 
