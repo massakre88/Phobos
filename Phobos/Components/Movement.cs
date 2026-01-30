@@ -11,6 +11,13 @@ public enum MovementStatus
     Failed
 }
 
+public enum MovementUrgency
+{
+    High,
+    Medium,
+    Low
+}
+
 public class Movement
 {
     public static readonly Vector3 Infinity = new(float.MaxValue, float.MaxValue, float.MaxValue);
@@ -27,6 +34,7 @@ public class Movement
     public float Pose = 1f;
     public bool Sprint = false;
     public bool Prone = false;
+    public MovementUrgency Urgency = MovementUrgency.Medium;
 
     public bool HasPath
     {

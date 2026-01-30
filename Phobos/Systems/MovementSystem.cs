@@ -79,15 +79,31 @@ public class MovementSystem
     {
         return (agent.Movement.Target - destination).sqrMagnitude <= TargetEpsSqr;
     }
+    
+    
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
+    public static void ResetGait(
+        Agent agent, float pose = 1f, float speed = 1f, bool prone = false, bool sprint = false, MovementUrgency urgency = MovementUrgency.Medium
+    )
+    {
+        agent.Movement.Pose = pose;
+        agent.Movement.Speed = speed;
+        agent.Movement.Prone = prone;
+        agent.Movement.Sprint = sprint;
+        agent.Movement.Urgency = urgency;
+    }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    public void MoveToByPath(Agent agent, Vector3 destination, float pose = 1f, float speed = 1f, bool prone = false, bool sprint = false)
+    public void MoveToByPath(
+        Agent agent, Vector3 destination, float pose = 1f, float speed = 1f, bool prone = false, bool sprint = false,
+        MovementUrgency urgency = MovementUrgency.Medium
+    )
     {
         // Generally, calling code can determine whether the current movement target is set correctly by checking this value.
         // As such, the target to be set immediately to ensure that these checks are correctly done.
         agent.Movement.Target = destination;
         ScheduleMoveJob(agent, destination);
-        ResetGait(agent, pose, speed, prone, sprint);
+        ResetGait(agent, pose, speed, prone, sprint, urgency);
         ResetPath(agent);
         agent.Movement.Retry = 0;
     }
@@ -325,15 +341,6 @@ public class MovementSystem
     }
 
     [MethodImpl(MethodImplOptions.AggressiveInlining)]
-    private static void ResetGait(Agent agent, float pose = 1f, float speed = 1f, bool prone = false, bool sprint = false)
-    {
-        agent.Movement.Pose = pose;
-        agent.Movement.Speed = speed;
-        agent.Movement.Prone = prone;
-        agent.Movement.Sprint = sprint;
-    }
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static void ResetPath(Agent agent, MovementStatus status = MovementStatus.Stopped)
     {
         // We explicitly don't reset the target here - it hasn't changed. Only the path is supposed to be deleted.
@@ -351,15 +358,23 @@ public class MovementSystem
         movement.CurrentCorner = 0;
     }
 
+    [MethodImpl(MethodImplOptions.AggressiveInlining)]
     private static bool CanSprint(Agent agent)
     {
+        var angleJitterLimit = agent.Movement.Urgency switch
+        {
+            MovementUrgency.High => 45f,
+            MovementUrgency.Medium => 30f,
+            MovementUrgency.Low => 20f,
+            _ => 30f
+        };
+
         var bot = agent.Bot;
-        var isFarFromDestination = (agent.Movement.Target - agent.Position).sqrMagnitude > SprintTargetThresholdDistanceSqr;
         var isOutside = bot.AIData.EnvironmentId == 0;
         var isAbleToSprint = bot.GetPlayer.MovementContext.CanSprint;
-        var isPathSmooth = PathHelper.CalculatePathAngleJitter(agent.Movement.Path, agent.Movement.CurrentCorner, 10f) < 30f;
+        var isPathSmooth = PathHelper.CalculatePathAngleJitter(agent.Movement.Path, agent.Movement.CurrentCorner, 10f) < angleJitterLimit;
 
-        return isOutside && isAbleToSprint && isPathSmooth && isFarFromDestination;
+        return isOutside && isAbleToSprint && isPathSmooth;
     }
 
     private class StuckRemediation(MovementSystem movementSystem, List<Player> humanPlayers)
