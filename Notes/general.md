@@ -1,4 +1,5 @@
 ﻿# TODO:
+- Crouching doesn't work somehow
 
 ## Standing Cover
 - Look at any visible doors

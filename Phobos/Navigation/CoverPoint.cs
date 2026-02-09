@@ -53,4 +53,9 @@ public readonly struct CoverPoint : IEquatable<CoverPoint>
     {
         return Position.GetHashCode();
     }
+
+    public override string ToString()
+    {
+        return $"{nameof(CoverPoint)}(category: {Category}, level: {Level})";
+    }
 }

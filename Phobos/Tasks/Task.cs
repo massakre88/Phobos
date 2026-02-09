@@ -15,7 +15,7 @@ public abstract class Task<T>(float hysteresis) : BaseTask(hysteresis) where T: 
 
     public virtual void Activate(T entity)
     {
-        Log.Debug($"{this} activating {entity}");
+        Log.Debug($"{entity} activating {this}");
         
         if (!_entitySet.Add(entity))
             return;
@@ -25,7 +25,7 @@ public abstract class Task<T>(float hysteresis) : BaseTask(hysteresis) where T: 
 
     public override void Deactivate(Entity entity)
     {
-        Log.Debug($"{this} deactivating {entity}");
+        Log.Debug($"{entity} deactivating {this}");
         
         if (!_entitySet.Remove(entity))
             return;

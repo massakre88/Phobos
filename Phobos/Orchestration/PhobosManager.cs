@@ -141,7 +141,7 @@ public class PhobosManager
     {
         var actions = new DefinitionRegistry<Task<Agent>>();
 
-        actions.Add(new GotoObjectiveAction(AgentData, MovementSystem,0.25f));
+        actions.Add(new GotoObjectiveAction(AgentData, MovementSystem,0.15f));
         actions.Add(new GuardAction(AgentData, MovementSystem, 0.1f));
 
         OnRegisterActions?.Invoke(actions);

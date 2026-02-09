@@ -67,6 +67,12 @@ public class GotoObjectiveAction(AgentData dataset, MovementSystem movementSyste
             // Target hysteresis: skip new move orders if the objective deviates from the target by less than the move system epsilon
             if (MovementSystem.IsMovementTargetCurrent(agent, objective.Location.Position))
             {
+                // Stop sprinting within 2x the radius (2*2 when squared)
+                if (agent.Movement.Sprint && (objective.Location.Position - agent.Position).sqrMagnitude < 4 * agent.Objective.Location.RadiusSqr)
+                {
+                    MovementSystem.ResetGait(agent);
+                }
+                
                 continue;
             }
             
@@ -87,7 +93,7 @@ public class GotoObjectiveAction(AgentData dataset, MovementSystem movementSyste
         }
         
         // Check if we are already moving to our target
-        if (entity.Movement.HasPath)
+        if (entity.Movement.Status == MovementStatus.Moving)
         {
             if ((entity.Movement.Target - location.Position).sqrMagnitude <= location.RadiusSqr)
             {

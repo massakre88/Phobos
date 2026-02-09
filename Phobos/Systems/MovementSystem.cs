@@ -15,7 +15,6 @@ namespace Phobos.Systems;
 
 public class MovementSystem
 {
-    private const float SprintTargetThresholdDistanceSqr = 10f * 10f;
     private const float TargetEpsSqr = 1.5f * 1.5f;
     private const float CornerWalkEpsSqr = 0.35f * 0.35f;
     private const float CornerSprintEpsSqr = 0.6f * 0.6f;
@@ -104,7 +103,7 @@ public class MovementSystem
         agent.Movement.Target = destination;
         ScheduleMoveJob(agent, destination);
         ResetGait(agent, pose, speed, prone, sprint, urgency);
-        ResetPath(agent);
+        ResetPath(agent, MovementStatus.Moving);
         agent.Movement.Retry = 0;
     }
 
@@ -255,16 +254,16 @@ public class MovementSystem
         }
         else
         {
-            // If the path doesn't reach far enough, retry again. Don't rely on unity's path status value here.
-            if ((movement.Target - movement.Path[movement.CurrentCorner]).sqrMagnitude > TargetEpsSqr)
-            {
-                MoveRetry(agent, movement.Target);
-                return;
-            }
-
             // We retry pathing above if the last corner doesn't reach far enough, here just check whether we reached that corner.
             if ((movement.Path[movement.CurrentCorner] - agent.Player.Position).sqrMagnitude <= TargetEpsSqr)
             {
+                // If the path doesn't reach far enough, retry again. Don't rely on unity's path status value here.
+                if ((movement.Target - movement.Path[movement.CurrentCorner]).sqrMagnitude > TargetEpsSqr)
+                {
+                    MoveRetry(agent, movement.Target);
+                    return;
+                }
+                
                 Log.Debug($"{agent} destination reached");
                 // Don't reset the target here. Our target hasn't changed, we just reached it. 
                 ResetPath(agent);

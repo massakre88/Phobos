@@ -120,7 +120,6 @@ public class PhobosLayer : CustomLayer
     public override void BuildDebugText(StringBuilder sb)
     {
         var pose = BotOwner.GetPlayer.MovementContext.PoseLevel;
-        var destSpeed = BotOwner.Mover?.DestMoveSpeed;
         var actualSpeed = _agent.Player.MovementContext.CharacterMovementSpeed;
 
         var distMove = 0f;
@@ -140,6 +139,7 @@ public class PhobosLayer : CustomLayer
         sb.AppendLine(_agent.Stuck.Soft.ToString());
         sb.AppendLine(_agent.Stuck.Hard.ToString());
         sb.AppendLine($"{_agent.Objective} dist {distObj}/{_agent.Objective.Location?.RadiusSqr}");
+        sb.AppendLine($"{_agent.Guard}");
         sb.AppendLine("*** Generic ***");
         sb.AppendLine($"HasEnemy: {BotOwner.Memory.HaveEnemy} UnderFire: {BotOwner.Memory.IsUnderFire}");
         sb.AppendLine($"Pose: {pose} ActualSpeed: {actualSpeed} Stamina: {BotOwner.GetPlayer.Physical.Stamina.NormalValue}");

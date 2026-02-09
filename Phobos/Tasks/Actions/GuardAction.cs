@@ -1,5 +1,8 @@
-﻿using Phobos.Data;
+﻿using System.Collections.Generic;
+using Phobos.Components;
+using Phobos.Data;
 using Phobos.Entities;
+using Phobos.Navigation;
 using Phobos.Systems;
 using UnityEngine;
 
@@ -7,8 +10,12 @@ namespace Phobos.Tasks.Actions;
 
 public class GuardAction(AgentData dataset, MovementSystem movementSystem, float hysteresis) : Task<Agent>(hysteresis)
 {
-    private const float UtilityBase = 0.65f;
-    private const float InnerRadiusRatio = 0.8f * 0.8f;
+    private const float UtilityBoost = 0.45f;
+    private const float UtilityBase = 0.2f;
+    private const float InnerRadiusRatio = 0.95f * 0.95f;
+
+    private readonly List<Vector3> _watchCandidates = [];
+    private readonly List<Vector3> _watchTargets = [];
 
     public override void UpdateScore(int ordinal)
     {
@@ -18,17 +25,17 @@ public class GuardAction(AgentData dataset, MovementSystem movementSystem, float
             var agent = agents[i];
             var location = agent.Objective.Location;
             
-            // If we don't have an objective or the movement failed
-            if (location == null)
+            // If we don't have an objective or cover point selected at all, bail out with zero
+            if (location == null || agent.Guard.CoverPoint == null)
             {
                 agent.TaskScores[ordinal] = 0;
                 continue;
             }
-
-            // The utility is 0 outside the radius, then quickly increases to 0.65f at 80% of the radius. 
+            
+            // The utility quickly increases to 0.65f
             var distSqr = (location.Position - agent.Position).sqrMagnitude;
             var utilityScale = Mathf.InverseLerp(location.RadiusSqr, InnerRadiusRatio * location.RadiusSqr, distSqr);
-            agent.TaskScores[ordinal] = utilityScale * UtilityBase;
+            agent.TaskScores[ordinal] = UtilityBase + utilityScale * UtilityBoost;
         }
     }
 
@@ -45,13 +52,20 @@ public class GuardAction(AgentData dataset, MovementSystem movementSystem, float
             
             var coverPoint = agent.Guard.CoverPoint.Value;
             
-            // Target hysteresis: skip new move orders if the objective deviates from the target by less than the move system epsilon
             if (MovementSystem.IsMovementTargetCurrent(agent, coverPoint.Position))
             {
-                continue;
+                if (agent.Movement.Status == MovementStatus.Moving) continue;
+                
+                // If we are no longer moving, crouch
+                if (agent.Movement.Pose > 0.3f && (coverPoint.Level != CoverLevel.Stay || Random.value > 0.5f))
+                {
+                    MovementSystem.ResetGait(agent, pose: 0.25f);
+                }
             }
-        
-            movementSystem.MoveToByPath(agent, coverPoint.Position);
+            else
+            {
+                movementSystem.MoveToByPath(agent, coverPoint.Position, sprint: true, urgency: MovementUrgency.Low);
+            }
         }
     }
 
@@ -72,7 +86,51 @@ public class GuardAction(AgentData dataset, MovementSystem movementSystem, float
             return;
         }
 
-        movementSystem.MoveToByPath(entity, coverPoint.Position);
+        movementSystem.MoveToByPath(entity, coverPoint.Position, sprint: true, urgency: MovementUrgency.Low);
     }
 
+    private void PickObserveDirection(Agent agent, CoverPoint coverPoint)
+    {
+        _watchCandidates.Clear();
+        
+        if (coverPoint.Category == CoverCategory.Hard)
+        {
+            _watchCandidates.Add(-1 * coverPoint.Direction);
+
+            // If it's not standing cover, also try to look in direction of the wall
+            if (coverPoint.Level != CoverLevel.Stay)
+            {
+                _watchCandidates.Add(coverPoint.Direction);
+            }
+        }
+
+        var objectiveVector = agent.Objective.Location.Position + Vector3.up - agent.Position;
+        objectiveVector.Normalize();
+        
+        // At the objective
+        _watchCandidates.Add(objectiveVector);
+        
+        // Away from the objective
+        _watchCandidates.Add(-1 * objectiveVector);
+        
+        // Find all arrival path points with los > 25m
+        if (agent.Objective.ArrivalPath != null)
+        {
+            
+        }
+        
+        // Find all nearby doors
+        for (var i = 0; i < agent.Objective.Location.Doors.Count; i++)
+        {
+            var door = agent.Objective.Location.Doors[i];
+            var doorVector = door.transform.position - agent.Position;
+            doorVector.Normalize();
+            _watchCandidates.Add(doorVector);
+        }
+    }
+
+    private static void SweepObserveDirection(Agent agent)
+    {
+        // Add a gentle random sweep with 35 deg horizontal and 10 deg vertial range
+    }
 }
