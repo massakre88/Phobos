@@ -36,9 +36,16 @@ public abstract class Task<T>(float hysteresis) : BaseTask(hysteresis) where T: 
             
             if (candidate.Id != entity.Id) continue;
             
+            Deactivate(candidate);
+            
             ActiveEntities.SwapRemoveAt(i);
             return;
         }
+    }
+
+    protected virtual void Deactivate(T entity)
+    {
+        
     }
 }
 

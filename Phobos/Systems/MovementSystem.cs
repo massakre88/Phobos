@@ -371,9 +371,10 @@ public class MovementSystem
         var bot = agent.Bot;
         var isOutside = bot.AIData.EnvironmentId == 0;
         var isAbleToSprint = bot.GetPlayer.MovementContext.CanSprint;
+        var isFreeLook = agent.Look.Target == null;
         var isPathSmooth = PathHelper.CalculatePathAngleJitter(agent.Movement.Path, agent.Movement.CurrentCorner, 10f) < angleJitterLimit;
 
-        return isOutside && isAbleToSprint && isPathSmooth;
+        return isOutside && isAbleToSprint && isFreeLook && isPathSmooth;
     }
 
     private class StuckRemediation(MovementSystem movementSystem, List<Player> humanPlayers)
